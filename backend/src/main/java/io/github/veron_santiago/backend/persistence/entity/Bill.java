@@ -51,6 +51,7 @@ public class Bill {
     private String customerEmail;
 
     @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Column(name = "bill_lines")
     private List<BillLine> billLines;
 
     @NotNull
@@ -59,7 +60,7 @@ public class Bill {
     private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", foreignKey = @ForeignKey(name = "fk_bill_customer"), nullable = true)
+    @JoinColumn(name = "customer_id", foreignKey = @ForeignKey(name = "fk_bill_customer"))
     @OnDelete(action = OnDeleteAction.NO_ACTION)
     private Customer customer;
 
