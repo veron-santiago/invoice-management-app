@@ -33,7 +33,8 @@ public class Customer {
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
-    @OneToMany(mappedBy = "customer")
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    @OrderBy("billNumber DESC")
     private List<Bill> bills;
     
 
