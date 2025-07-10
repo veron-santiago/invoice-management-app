@@ -4,9 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record BillRequest(@NotBlank String customerName,
                           String customerEmail,
-                          @NotNull BigDecimal totalAmount
-                          ) {
+                          @NotNull List<BillLineRequest> billLineRequests) {
 }

@@ -5,8 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
-public record BillLineRequest (Long productId,
-                               @NotBlank String name,
+public record BillLineRequest (@NotBlank String name,
                                String code,
                                @NotNull int quantity,
                                @NotNull BigDecimal price){
