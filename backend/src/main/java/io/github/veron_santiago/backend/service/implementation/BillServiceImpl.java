@@ -13,6 +13,7 @@ import io.github.veron_santiago.backend.presentation.dto.response.CustomerDTO;
 import io.github.veron_santiago.backend.service.interfaces.IBillLineService;
 import io.github.veron_santiago.backend.service.interfaces.IBillService;
 import io.github.veron_santiago.backend.service.interfaces.ICustomerService;
+import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.BillMapper;
 import io.github.veron_santiago.backend.util.mapper.CustomerMapper;
 import org.springframework.security.access.AccessDeniedException;

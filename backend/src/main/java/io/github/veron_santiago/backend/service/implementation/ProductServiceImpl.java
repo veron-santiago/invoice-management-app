@@ -8,6 +8,7 @@ import io.github.veron_santiago.backend.presentation.dto.request.ProductRequest;
 import io.github.veron_santiago.backend.presentation.dto.response.ProductDTO;
 import io.github.veron_santiago.backend.presentation.dto.update.ProductUpdateRequest;
 import io.github.veron_santiago.backend.service.interfaces.IProductService;
+import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.ProductMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;

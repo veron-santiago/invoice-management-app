@@ -10,6 +10,7 @@ import io.github.veron_santiago.backend.persistence.repository.ICompanyRepositor
 import io.github.veron_santiago.backend.presentation.dto.request.BillLineRequest;
 import io.github.veron_santiago.backend.presentation.dto.response.BillLineDTO;
 import io.github.veron_santiago.backend.service.interfaces.IBillLineService;
+import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.BillLineMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
