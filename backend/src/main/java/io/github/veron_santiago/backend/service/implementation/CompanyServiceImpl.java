@@ -5,6 +5,8 @@ import io.github.veron_santiago.backend.persistence.repository.ICompanyRepositor
 import io.github.veron_santiago.backend.presentation.dto.AuthCreateCompany;
 import io.github.veron_santiago.backend.presentation.dto.AuthResponse;
 import io.github.veron_santiago.backend.presentation.dto.response.CompanyDTO;
+import io.github.veron_santiago.backend.service.exception.ErrorMessages;
+import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
 import io.github.veron_santiago.backend.service.interfaces.ICompanyService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.JwtUtil;
@@ -36,8 +38,6 @@ public class CompanyServiceImpl implements ICompanyService {
         this.authUtil = authUtil;
     }
 
-    private final String COMPANY_NOT_FOUND = "Compañia no encontrada";
-
     @Override
     public AuthResponse createCompany(AuthCreateCompany authCreateCompany) {
         String companyName = authCreateCompany.companyName();
@@ -68,7 +68,7 @@ public class CompanyServiceImpl implements ICompanyService {
     public CompanyDTO getCompany(HttpServletRequest request) {
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Company company = companyRepository.findById(companyId)
-                .orElseThrow( () -> new RuntimeException(COMPANY_NOT_FOUND));
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
         return companyMapper.companyToCompanyDTO(company, new CompanyDTO());
     }
 
@@ -76,7 +76,7 @@ public class CompanyServiceImpl implements ICompanyService {
     public void deleteCompany(HttpServletRequest request) {
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         if (companyRepository.existsById(companyId)) companyRepository.deleteById(companyId);
-        else throw new RuntimeException(COMPANY_NOT_FOUND);
+        else throw new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage());
     }
 
     @Override
@@ -100,7 +100,7 @@ public class CompanyServiceImpl implements ICompanyService {
 
     private String getEmailByCompanyName(String companyName){
         Optional<String> email = companyRepository.findEmailByCompanyName(companyName);
-        return email.orElseThrow( () -> new RuntimeException(COMPANY_NOT_FOUND));
+        return email.orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
     }
 
     private void sendVerificationEmail(String email, String verificationToken){

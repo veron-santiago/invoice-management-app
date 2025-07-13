@@ -10,6 +10,9 @@ import io.github.veron_santiago.backend.presentation.dto.request.BillRequest;
 import io.github.veron_santiago.backend.presentation.dto.request.CustomerRequest;
 import io.github.veron_santiago.backend.presentation.dto.response.BillDTO;
 import io.github.veron_santiago.backend.presentation.dto.response.CustomerDTO;
+import io.github.veron_santiago.backend.service.exception.ErrorMessages;
+import io.github.veron_santiago.backend.service.exception.InvalidFieldException;
+import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
 import io.github.veron_santiago.backend.service.interfaces.IBillLineService;
 import io.github.veron_santiago.backend.service.interfaces.IBillService;
 import io.github.veron_santiago.backend.service.interfaces.ICustomerService;
@@ -38,7 +41,6 @@ public class BillServiceImpl implements IBillService {
     private final CustomerMapper customerMapper;
     private final IBillLineService billLineService;
 
-    private final String BILL_NOT_FOUND = "Factura no encontrada";
 
     public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService) {
         this.billRepository = billRepository;
@@ -55,7 +57,11 @@ public class BillServiceImpl implements IBillService {
     public BillDTO createBill(BillRequest billRequest, HttpServletRequest request) throws IOException {
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Compañía no encontrada"));
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
+
+        if (billRequest.customerName() == null || billRequest.customerName().isBlank()) {
+            throw new InvalidFieldException(ErrorMessages.CUSTOMER_NAME_IS_EMPTY.getMessage());
+        }
 
         Customer customer = company.getCustomers().stream()
                 .filter(c -> c.getName().equalsIgnoreCase(billRequest.customerName()))
@@ -66,13 +72,12 @@ public class BillServiceImpl implements IBillService {
                     return customerMapper.customerDTOToCustomer(dto, new Customer(), companyRepository, billRepository);
                 });
 
-        AtomicReference<Float> total = new AtomicReference<>(0F);
-
+        AtomicReference<BigDecimal> total = new AtomicReference<>(BigDecimal.ZERO);
         billRequest.billLineRequests()
-                .stream()
-                .map( billLineRequest -> billLineRequest.price().multiply(BigDecimal.valueOf(billLineRequest.quantity())) )
-                .map( value -> Float.valueOf(String.valueOf(value)) )
-                .forEach( value -> total.updateAndGet(v -> v + value));
+                .forEach(req -> {
+                    BigDecimal lineTotal = req.price().multiply(BigDecimal.valueOf(req.quantity()));
+                    total.updateAndGet(t -> t.add(lineTotal));
+                });
 
 
         Bill bill = Bill.builder()
@@ -108,9 +113,9 @@ public class BillServiceImpl implements IBillService {
     public BillDTO getBillById(Long id, HttpServletRequest request){
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Bill bill = billRepository.findById(id)
-                .orElseThrow( () -> new RuntimeException(BILL_NOT_FOUND) );
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.BILL_NOT_FOUND.getMessage()));
 
-        if(!bill.getCompany().getId().equals(companyId)) throw new AccessDeniedException("No tienes permiso para acceder a esta factura");
+        if(!bill.getCompany().getId().equals(companyId)) throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_READ.getMessage());
 
         return billMapper.billToBillDTO(bill, new BillDTO());
     }

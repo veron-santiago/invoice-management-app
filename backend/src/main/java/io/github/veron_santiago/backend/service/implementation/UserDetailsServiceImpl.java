@@ -4,6 +4,8 @@ import io.github.veron_santiago.backend.persistence.entity.Company;
 import io.github.veron_santiago.backend.persistence.repository.ICompanyRepository;
 import io.github.veron_santiago.backend.presentation.dto.AuthRequest;
 import io.github.veron_santiago.backend.presentation.dto.AuthResponse;
+import io.github.veron_santiago.backend.service.exception.ErrorMessages;
+import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
 import io.github.veron_santiago.backend.util.JwtUtil;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -58,7 +60,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         boolean rememberMe = Boolean.TRUE.equals(authRequest.stayLogged());
 
         Company company = companyRepository.findByCompanyNameOrEmail(companyName)
-                .orElseThrow(() -> new RuntimeException("Compañia no encontrada"));
+                .orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
 
         if (!company.isVerified()) return new AuthResponse(companyName, "La compañia no está verificada. Compruebe su correo", null, false);
 

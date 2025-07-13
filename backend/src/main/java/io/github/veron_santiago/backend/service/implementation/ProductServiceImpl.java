@@ -7,6 +7,9 @@ import io.github.veron_santiago.backend.persistence.repository.IProductRepositor
 import io.github.veron_santiago.backend.presentation.dto.request.ProductRequest;
 import io.github.veron_santiago.backend.presentation.dto.response.ProductDTO;
 import io.github.veron_santiago.backend.presentation.dto.update.ProductUpdateRequest;
+import io.github.veron_santiago.backend.service.exception.ErrorMessages;
+import io.github.veron_santiago.backend.service.exception.InvalidFieldException;
+import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
 import io.github.veron_santiago.backend.service.interfaces.IProductService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.ProductMapper;
@@ -26,8 +29,6 @@ public class ProductServiceImpl implements IProductService {
     private final ProductMapper productMapper;
     private final AuthUtil authUtil;
 
-    private final String PRODUCT_NOT_FOUND = "Producto no encontrado";
-
     public ProductServiceImpl(IProductRepository productRepository, ICompanyRepository companyRepository, ProductMapper productMapper, AuthUtil authUtil) {
         this.productRepository = productRepository;
         this.companyRepository = companyRepository;
@@ -41,14 +42,14 @@ public class ProductServiceImpl implements IProductService {
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
 
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Compañia no encontrada"));
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
 
         String name = productRequest.name();
         BigDecimal price = productRequest.price();
         String code = productRequest.code();
 
         if ((name == null || name.isBlank()) || (price == null || price.compareTo(BigDecimal.ZERO) <= 0)){
-            throw new RuntimeException("El nombre y el precio del producto deben estar declarados");
+            throw new InvalidFieldException("El nombre y el precio del producto deben estar declarados");
         }
 
         Product product = Product.builder()
@@ -66,8 +67,8 @@ public class ProductServiceImpl implements IProductService {
     public ProductDTO getProductById(Long id, HttpServletRequest request) {
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Product product = productRepository.findById(id)
-                .orElseThrow( () -> new RuntimeException(PRODUCT_NOT_FOUND) );
-        if (!product.getCompany().getId().equals(companyId)) throw new AccessDeniedException("No tienes permiso para acceder a este producto");
+                .orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND.getMessage()));
+        if (!product.getCompany().getId().equals(companyId)) throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_READ.getMessage());
         return productMapper.productToProductDTO(product, new ProductDTO());
     }
 
@@ -84,28 +85,28 @@ public class ProductServiceImpl implements IProductService {
     public ProductDTO updateProduct(Long id, ProductUpdateRequest productRequest, HttpServletRequest request){
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND));
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND.getMessage()));
 
         if (!existingProduct.getCompany().getId().equals(companyId)) {
-            throw new AccessDeniedException("No tienes permiso para modificar este producto");
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_UPDATE.getMessage());
         }
 
         String name = productRequest.name();
         String code = productRequest.code();
         BigDecimal price = productRequest.price();
 
-        if (name == null && code == null && price == null) throw new RuntimeException("Se debe declarar al menos un valor: nombre o precio");
+        if (name == null && code == null && price == null) throw new InvalidFieldException(ErrorMessages.PRODUCT_EMPTY_FIELDS.getMessage());
 
         if (name != null){
-            if (name.isBlank()) throw new RuntimeException("El nombre no puede estar vacío");
+            if (name.isBlank()) throw new InvalidFieldException(ErrorMessages.PRODUCT_NAME_IS_EMPTY.getMessage());
             existingProduct.setName(name);
         }
         if (code != null){
-            if (code.isBlank()) throw new RuntimeException("El código no puede estar vacío");
+            if (code.isBlank()) throw new InvalidFieldException(ErrorMessages.PRODUCT_CODE_IS_EMPTY.getMessage());
             existingProduct.setCode(code);
         }
         if (price != null) {
-            if (price.compareTo(BigDecimal.ZERO) <= 0) throw new RuntimeException("El precio debe ser mayor que cero");
+            if (price.compareTo(BigDecimal.ZERO) <= 0) throw new InvalidFieldException(ErrorMessages.PRODUCT_PRICE_MUST_BE_POSITIVE.getMessage());
             existingProduct.setPrice(price);
         }
 
@@ -116,8 +117,8 @@ public class ProductServiceImpl implements IProductService {
     public void deleteProduct(Long id, HttpServletRequest request) {
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND));
-        if (!product.getCompany().getId().equals(companyId)) throw new AccessDeniedException("No tienes permiso para eliminar este producto");
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND.getMessage()));
+        if (!product.getCompany().getId().equals(companyId)) throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_DELETE.getMessage());
         productRepository.deleteById(id);
     }
 }

@@ -7,6 +7,8 @@ import io.github.veron_santiago.backend.persistence.repository.ICustomerReposito
 import io.github.veron_santiago.backend.presentation.dto.request.CustomerRequest;
 import io.github.veron_santiago.backend.presentation.dto.response.CustomerDTO;
 import io.github.veron_santiago.backend.presentation.dto.update.CustomerUpdateRequest;
+import io.github.veron_santiago.backend.service.exception.ErrorMessages;
+import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
 import io.github.veron_santiago.backend.service.interfaces.ICustomerService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.CustomerMapper;
@@ -32,13 +34,11 @@ public class CustomerServiceImpl implements ICustomerService {
         this.authUtil = authUtil;
     }
 
-    private final String CUSTOMER_NOT_FOUND = "Cliente no encontrado";
-
     @Override
     public CustomerDTO createCustomer(CustomerRequest customerRequest, HttpServletRequest request){
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Compañia no encontrada"));
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
 
         Customer customer = Customer.builder()
                 .name(customerRequest.name())
@@ -54,8 +54,8 @@ public class CustomerServiceImpl implements ICustomerService {
     public CustomerDTO getCustomerById(Long id, HttpServletRequest request){
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Customer customer = customerRepository.findById(id)
-                .orElseThrow( () -> new RuntimeException(CUSTOMER_NOT_FOUND) );
-        if (!customer.getCompany().getId().equals(companyId)) throw new AccessDeniedException("No tienes permiso para acceder a este cliente");
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.CUSTOMER_NOT_FOUND.getMessage()));
+        if (!customer.getCompany().getId().equals(companyId)) throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_READ.getMessage());
         return customerMapper.customerToCustomerDTO(customer, new CustomerDTO());
     }
 
@@ -72,9 +72,9 @@ public class CustomerServiceImpl implements ICustomerService {
     public CustomerDTO updateCustomer(Long id, CustomerUpdateRequest customerRequest, HttpServletRequest request){
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Customer existingCustomer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(CUSTOMER_NOT_FOUND));
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.CUSTOMER_NOT_FOUND.getMessage()));
 
-        if (!existingCustomer.getCompany().getId().equals(companyId)) throw new AccessDeniedException("No tienes permiso para modificar este cliente");
+        if (!existingCustomer.getCompany().getId().equals(companyId)) throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_UPDATE.getMessage());
 
         String name = customerRequest.name();
         String email = customerRequest.email();
@@ -93,8 +93,8 @@ public class CustomerServiceImpl implements ICustomerService {
     public void deleteCustomer(Long id, HttpServletRequest request){
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Customer customer = customerRepository.findById(id)
-                .orElseThrow( () -> new RuntimeException(CUSTOMER_NOT_FOUND));
-        if (!customer.getCompany().getId().equals(companyId)) throw new AccessDeniedException("No tienes permiso para eliminar este cliente");
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.CUSTOMER_NOT_FOUND.getMessage()));
+        if (!customer.getCompany().getId().equals(companyId)) throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_DELETE.getMessage());
         customerRepository.deleteById(id);
     }
 }
