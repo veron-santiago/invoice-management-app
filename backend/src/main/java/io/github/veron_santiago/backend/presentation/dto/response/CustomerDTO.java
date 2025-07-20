@@ -20,6 +20,7 @@ public class CustomerDTO {
     @NotBlank
     private String name;
     private String email;
+    private String address;
     @NotBlank
     private Long companyId;
     private List<Long> bills;

@@ -28,6 +28,8 @@ public class Customer {
     @Email
     private String email;
 
+    private String address;
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)

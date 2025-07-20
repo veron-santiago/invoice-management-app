@@ -43,6 +43,7 @@ public class CustomerServiceImpl implements ICustomerService {
         Customer customer = Customer.builder()
                 .name(customerRequest.name())
                 .email(customerRequest.email())
+                .address(customerRequest.address())
                 .company(company)
                 .build();
 
@@ -78,12 +79,16 @@ public class CustomerServiceImpl implements ICustomerService {
 
         String name = customerRequest.name();
         String email = customerRequest.email();
+        String address = customerRequest.address();
 
         if (name != null && !name.isBlank()){
             existingCustomer.setName(name);
         }
         if (email != null){
             existingCustomer.setEmail(email.isBlank() ? null : email);
+        }
+        if (address != null){
+            existingCustomer.setAddress(address.isBlank() ? null : address);
         }
 
         return customerMapper.customerToCustomerDTO(customerRepository.save(existingCustomer), new CustomerDTO());

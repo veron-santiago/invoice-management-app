@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record BillRequest(@NotBlank String customerName,
+                          String customerAddress,
+                          String companyAddress,
                           String customerEmail,
                           @NotNull @Valid List<BillLineRequest> billLineRequests) {
 }

@@ -137,7 +137,7 @@ public class BillServiceImpl implements IBillService {
                 .findFirst()
                 .orElseGet(() -> {
                     CustomerDTO dto = customerService.createCustomer(
-                            new CustomerRequest(billRequest.customerName(), billRequest.customerEmail()), request);
+                            new CustomerRequest(billRequest.customerName(), billRequest.companyAddress(), billRequest.customerEmail()), request);
                     return customerMapper.customerDTOToCustomer(dto, new Customer(), companyRepository, billRepository);
                 });
     }

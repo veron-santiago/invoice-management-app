@@ -35,6 +35,8 @@ public class Company {
     @Column(nullable = false, unique = true)
     private String email;
 
+    private String address;
+
     @Builder.Default
     private boolean verified = false;
 

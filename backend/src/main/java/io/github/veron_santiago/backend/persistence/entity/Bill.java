@@ -42,6 +42,9 @@ public class Bill {
     @Column(name = "total", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "company_address")
+    private String companyAddress;
+
     @NotBlank
     @Column(name = "customer_name", nullable = false, length = 100)
     private String customerName;
@@ -49,6 +52,9 @@ public class Bill {
     @Email
     @Column(name = "customer_email")
     private String customerEmail;
+
+    @Column(name = "customer_address")
+    private String customerAddress;
 
     @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true)
     @Column(name = "bill_lines")

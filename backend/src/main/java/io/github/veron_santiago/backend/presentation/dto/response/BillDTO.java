@@ -27,9 +27,11 @@ public class BillDTO {
     @NotNull
     @DecimalMin("0.01")
     private BigDecimal totalAmount;
+    private String companyAddress;
     @NotBlank
     private String customerName;
     private String customerEmail;
+    private String customerAddress;
     @NotNull
     private Long companyId;
     private List<Long> billLines;
