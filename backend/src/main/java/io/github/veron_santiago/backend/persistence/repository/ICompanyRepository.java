@@ -21,4 +21,5 @@ public interface ICompanyRepository extends JpaRepository<Company, Long> {
     @Query("SELECT c.id FROM Company c WHERE c.companyName = :companyName")
     Optional<Long> findIdByCompanyName(@Param("companyName") String companyName);
     @Query("SELECT c.id FROM Company c WHERE c.email = :email")
-    Optional<Long> findIdByEmail(@Param("email") String email);}
+    Optional<Long> findIdByEmail(@Param("email") String email);
+}

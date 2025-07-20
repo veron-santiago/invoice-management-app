@@ -14,7 +14,8 @@ public enum ErrorMessages {
     PRODUCT_EMPTY_FIELDS("Se debe declarar al menos un valor"),
     ACCESS_DENIED_READ("No tienes permiso para acceder a este recurso"),
     ACCESS_DENIED_UPDATE("No tienes permiso para modificar este recurso"),
-    ACCESS_DENIED_DELETE("No tienes permiso para eliminar este recurso");
+    ACCESS_DENIED_DELETE("No tienes permiso para eliminar este recurso"),
+    DUPLICATE_PRODUCT_IN_BILL("No se permiten productos repetidos en una factura");
 
 
 

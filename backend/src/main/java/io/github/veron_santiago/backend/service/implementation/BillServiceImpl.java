@@ -6,6 +6,7 @@ import io.github.veron_santiago.backend.persistence.entity.Company;
 import io.github.veron_santiago.backend.persistence.entity.Customer;
 import io.github.veron_santiago.backend.persistence.repository.IBillRepository;
 import io.github.veron_santiago.backend.persistence.repository.ICompanyRepository;
+import io.github.veron_santiago.backend.presentation.dto.request.BillLineRequest;
 import io.github.veron_santiago.backend.presentation.dto.request.BillRequest;
 import io.github.veron_santiago.backend.presentation.dto.request.CustomerRequest;
 import io.github.veron_santiago.backend.presentation.dto.response.BillDTO;
@@ -26,7 +27,9 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -41,7 +44,6 @@ public class BillServiceImpl implements IBillService {
     private final CustomerMapper customerMapper;
     private final IBillLineService billLineService;
 
-
     public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService) {
         this.billRepository = billRepository;
         this.companyRepository = companyRepository;
@@ -55,30 +57,14 @@ public class BillServiceImpl implements IBillService {
 
     @Override
     public BillDTO createBill(BillRequest billRequest, HttpServletRequest request) throws IOException {
-        Long companyId = authUtil.getAuthenticatedCompanyId(request);
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
 
-        if (billRequest.customerName() == null || billRequest.customerName().isBlank()) {
-            throw new InvalidFieldException(ErrorMessages.CUSTOMER_NAME_IS_EMPTY.getMessage());
-        }
+        Company company = getCompany(request);
 
-        Customer customer = company.getCustomers().stream()
-                .filter(c -> c.getName().equalsIgnoreCase(billRequest.customerName()))
-                .findFirst()
-                .orElseGet(() -> {
-                    CustomerDTO dto = customerService.createCustomer(
-                            new CustomerRequest(billRequest.customerName(), billRequest.customerEmail()), request);
-                    return customerMapper.customerDTOToCustomer(dto, new Customer(), companyRepository, billRepository);
-                });
+        verifyEmptyCustomerName(billRequest);
+        verifyDuplicateProducts(billRequest);
 
-        AtomicReference<BigDecimal> total = new AtomicReference<>(BigDecimal.ZERO);
-        billRequest.billLineRequests()
-                .forEach(req -> {
-                    BigDecimal lineTotal = req.price().multiply(BigDecimal.valueOf(req.quantity()));
-                    total.updateAndGet(t -> t.add(lineTotal));
-                });
-
+        AtomicReference<BigDecimal> total = calculateTotal(billRequest);
+        Customer customer = getCustomerOrCreate(company, billRequest, request);
 
         Bill bill = Bill.builder()
                 .billNumber((long) (company.getBills().size() + 1))
@@ -92,8 +78,71 @@ public class BillServiceImpl implements IBillService {
                 .build();
 
         Bill saved = billRepository.save(bill);
+        List<BillLine> billLines = createBillLines(billRequest, bill, request);
+        saved.setBillLines(billLines);
+        Bill finalSaved = billRepository.save(saved);
 
-        List<BillLine> billLines = billRequest.billLineRequests()
+        return billMapper.billToBillDTO(finalSaved, new BillDTO());
+    }
+
+    @Override
+    public BillDTO getBillById(Long id, HttpServletRequest request){
+        Long companyId = authUtil.getAuthenticatedCompanyId(request);
+        Bill bill = billRepository.findById(id)
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.BILL_NOT_FOUND.getMessage()));
+        if(!bill.getCompany().getId().equals(companyId)) throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_READ.getMessage());
+        return billMapper.billToBillDTO(bill, new BillDTO());
+    }
+
+    @Override
+    public List<BillDTO> getAllBills(HttpServletRequest request) {
+        Long companyId = authUtil.getAuthenticatedCompanyId(request);
+        List<Bill> bills = billRepository.findByCompanyId(companyId);
+        return bills.stream()
+                .map( bill -> billMapper.billToBillDTO(bill, new BillDTO()) )
+                .collect(Collectors.toList());
+    }
+
+    private Company getCompany(HttpServletRequest request){
+        Long companyId = authUtil.getAuthenticatedCompanyId(request);
+        return companyRepository.findById(companyId)
+                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
+    }
+    private void verifyDuplicateProducts(BillRequest billRequest){
+        Set<String> names = new HashSet<>();
+        for (BillLineRequest line : billRequest.billLineRequests()) {
+            String upperCaseName = line.name().toUpperCase();
+            if (!names.add(upperCaseName)) {
+                throw new InvalidFieldException(ErrorMessages.DUPLICATE_PRODUCT_IN_BILL.getMessage());
+            }
+        }
+    }
+    private void verifyEmptyCustomerName(BillRequest billRequest){
+        if (billRequest.customerName() == null || billRequest.customerName().isBlank()) {
+            throw new InvalidFieldException(ErrorMessages.CUSTOMER_NAME_IS_EMPTY.getMessage());
+        }
+    }
+    private AtomicReference<BigDecimal> calculateTotal(BillRequest billRequest){
+        AtomicReference<BigDecimal> total = new AtomicReference<>(BigDecimal.ZERO);
+        billRequest.billLineRequests()
+                .forEach(req -> {
+                    BigDecimal lineTotal = req.price().multiply(BigDecimal.valueOf(req.quantity()));
+                    total.updateAndGet(t -> t.add(lineTotal));
+                });
+        return total;
+    }
+    private Customer getCustomerOrCreate(Company company, BillRequest billRequest, HttpServletRequest request){
+        return company.getCustomers().stream()
+                .filter(c -> c.getName().equalsIgnoreCase(billRequest.customerName()))
+                .findFirst()
+                .orElseGet(() -> {
+                    CustomerDTO dto = customerService.createCustomer(
+                            new CustomerRequest(billRequest.customerName(), billRequest.customerEmail()), request);
+                    return customerMapper.customerDTOToCustomer(dto, new Customer(), companyRepository, billRepository);
+                });
+    }
+    private List<BillLine> createBillLines(BillRequest billRequest, Bill bill, HttpServletRequest request){
+        return billRequest.billLineRequests()
                 .stream()
                 .map( billLineRequest -> {
                     try {
@@ -103,33 +152,6 @@ public class BillServiceImpl implements IBillService {
                     }
                 })
                 .toList();
-
-        saved.setBillLines(billLines);
-        Bill finalSaved = billRepository.save(saved);
-        return billMapper.billToBillDTO(finalSaved, new BillDTO());
     }
-
-    @Override
-    public BillDTO getBillById(Long id, HttpServletRequest request){
-        Long companyId = authUtil.getAuthenticatedCompanyId(request);
-        Bill bill = billRepository.findById(id)
-                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.BILL_NOT_FOUND.getMessage()));
-
-        if(!bill.getCompany().getId().equals(companyId)) throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_READ.getMessage());
-
-        return billMapper.billToBillDTO(bill, new BillDTO());
-    }
-
-    @Override
-    public List<BillDTO> getAllBills(HttpServletRequest request) {
-        Long companyId = authUtil.getAuthenticatedCompanyId(request);
-
-        List<Bill> bills = billRepository.findByCompanyId(companyId);
-
-        return bills.stream()
-                .map( bill -> billMapper.billToBillDTO(bill, new BillDTO()) )
-                .collect(Collectors.toList());
-    }
-
 
 }

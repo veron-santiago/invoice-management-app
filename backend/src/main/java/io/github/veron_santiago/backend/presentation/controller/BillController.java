@@ -38,13 +38,4 @@ public class BillController {
         return ResponseEntity.ok(billService.createBill(billRequest, request));
     }
 
-/*    @GetMapping(value = "/qr/{id}", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<byte[]> getBillQR(@PathVariable Long id) {
-        Optional<Bill> optionalBill = billRepository.findById(id);
-        if (optionalBill.isEmpty() || optionalBill.get().getQrImage() == null) {
-            return ResponseEntity.notFound().build();
-        }
-        byte[] qrImage = optionalBill.get().getQrImage();
-        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(qrImage);
-    }*/
 }

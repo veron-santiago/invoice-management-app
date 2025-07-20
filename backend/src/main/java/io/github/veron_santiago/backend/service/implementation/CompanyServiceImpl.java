@@ -98,11 +98,6 @@ public class CompanyServiceImpl implements ICompanyService {
         return true;
     }
 
-    private String getEmailByCompanyName(String companyName){
-        Optional<String> email = companyRepository.findEmailByCompanyName(companyName);
-        return email.orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
-    }
-
     private void sendVerificationEmail(String email, String verificationToken){
         String verificationUrl = "http://localhost:8080/auth/verify?token=" + verificationToken;
         SimpleMailMessage message = new SimpleMailMessage();

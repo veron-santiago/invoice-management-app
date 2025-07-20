@@ -98,9 +98,9 @@ public class BillLineServiceImpl implements IBillLineService {
         Company company = companyRepository.findById(companyId).orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
         return company.getProducts()
                                     .stream()
-                                    .filter( product -> Objects.equals(product.getName(), name))
+                                    .filter( product -> product.getName().equalsIgnoreCase(name))
                                     .findFirst()
-                                    .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND.getMessage()));
+                                    .orElse(null);
     }
 
 }
