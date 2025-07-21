@@ -10,11 +10,13 @@ public record BillLineRequest (
                                @NotBlank(message = "El nombre del producto no puede estar vacío")
                                @Pattern(
                                        regexp = "^[\\p{L}0-9 .,'-)(/+%:]$",
-                                       message = "El nombre solo puede contener letras, números y ciertos símbolos"
-                               )
+                                       message = "El nombre solo puede contener letras, números y ciertos símbolos")
                                String name,
 
                                @Size(max = 8, message = "El código no puede tener más de 8 caracteres")
+                               @Pattern(
+                                       regexp = "^[a-zA-Z0-9_.-]$",
+                                       message = "El código solo puede contener letras, números, puntos, guiones y guiones bajos")
                                String code,
 
                                @NotNull(message = "La cantidad es obligatoria")
