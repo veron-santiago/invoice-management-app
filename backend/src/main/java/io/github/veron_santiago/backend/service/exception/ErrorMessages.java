@@ -15,7 +15,16 @@ public enum ErrorMessages {
     ACCESS_DENIED_READ("No tienes permiso para acceder a este recurso"),
     ACCESS_DENIED_UPDATE("No tienes permiso para modificar este recurso"),
     ACCESS_DENIED_DELETE("No tienes permiso para eliminar este recurso"),
-    DUPLICATE_PRODUCT_IN_BILL("No se permiten productos repetidos en una factura");
+    DUPLICATE_PRODUCT_IN_BILL("No se permiten productos repetidos en una factura"),
+    EMPTY_FIELD("El campo no puede estar vacío"),
+    CONFLICT_COMPANY_NAME("El nombre ya se encuentra en uso"),
+    INCORRECT_CURRENT_PASSWORD("Contraseña actual incorrecta"),
+    PASSWORD_SAME_AS_CURRENT("La nueva contraseña debe ser distinta de la actual"),
+    EMAIL_SAME_AS_CURRENT("El nuevo email debe ser distinto al actual"),
+    EMAIL_ALREADY_IN_USE("El email ya se encuentra en uso");
+
+
+
 
 
 

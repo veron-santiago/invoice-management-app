@@ -2,8 +2,8 @@ package io.github.veron_santiago.backend.service.implementation;
 
 import io.github.veron_santiago.backend.persistence.entity.Company;
 import io.github.veron_santiago.backend.persistence.repository.ICompanyRepository;
-import io.github.veron_santiago.backend.presentation.dto.AuthRequest;
-import io.github.veron_santiago.backend.presentation.dto.AuthResponse;
+import io.github.veron_santiago.backend.presentation.dto.auth.AuthRequest;
+import io.github.veron_santiago.backend.presentation.dto.auth.AuthResponse;
 import io.github.veron_santiago.backend.service.exception.ErrorMessages;
 import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
 import io.github.veron_santiago.backend.util.JwtUtil;

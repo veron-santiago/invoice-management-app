@@ -1,8 +1,8 @@
 package io.github.veron_santiago.backend.presentation.controller;
 
-import io.github.veron_santiago.backend.presentation.dto.AuthCreateCompany;
-import io.github.veron_santiago.backend.presentation.dto.AuthRequest;
-import io.github.veron_santiago.backend.presentation.dto.AuthResponse;
+import io.github.veron_santiago.backend.presentation.dto.auth.AuthCreateCompany;
+import io.github.veron_santiago.backend.presentation.dto.auth.AuthRequest;
+import io.github.veron_santiago.backend.presentation.dto.auth.AuthResponse;
 import io.github.veron_santiago.backend.service.implementation.UserDetailsServiceImpl;
 import io.github.veron_santiago.backend.service.interfaces.ICompanyService;
 import jakarta.validation.Valid;

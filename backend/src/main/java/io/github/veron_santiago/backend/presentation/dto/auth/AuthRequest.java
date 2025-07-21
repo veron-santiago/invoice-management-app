@@ -1,4 +1,4 @@
-package io.github.veron_santiago.backend.presentation.dto;
+package io.github.veron_santiago.backend.presentation.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 
