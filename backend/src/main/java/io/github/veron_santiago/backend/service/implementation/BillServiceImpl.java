@@ -17,6 +17,7 @@ import io.github.veron_santiago.backend.service.exception.ObjectNotFoundExceptio
 import io.github.veron_santiago.backend.service.interfaces.IBillLineService;
 import io.github.veron_santiago.backend.service.interfaces.IBillService;
 import io.github.veron_santiago.backend.service.interfaces.ICustomerService;
+import io.github.veron_santiago.backend.service.interfaces.IPdfService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.BillMapper;
 import io.github.veron_santiago.backend.util.mapper.CustomerMapper;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -43,8 +45,9 @@ public class BillServiceImpl implements IBillService {
     private final ICustomerService customerService;
     private final CustomerMapper customerMapper;
     private final IBillLineService billLineService;
+    private final IPdfService pdfService;
 
-    public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService) {
+    public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService, IPdfService pdfService) {
         this.billRepository = billRepository;
         this.companyRepository = companyRepository;
         this.billMapper = billMapper;
@@ -52,6 +55,7 @@ public class BillServiceImpl implements IBillService {
         this.customerService = customerService;
         this.customerMapper = customerMapper;
         this.billLineService = billLineService;
+        this.pdfService = pdfService;
     }
 
 
@@ -71,15 +75,24 @@ public class BillServiceImpl implements IBillService {
                 .issueDate(LocalDate.now())
                 .dueDate(LocalDate.now().plusDays(30))
                 .totalAmount(BigDecimal.valueOf(Float.parseFloat(String.valueOf(total))))
+                .companyName(company.getCompanyName())
+                .companyEmail(company.getEmail())
+                .companyAddress(billRequest.companyAddress())
                 .customerName(billRequest.customerName())
                 .customerEmail(billRequest.customerEmail())
+                .customerAddress(billRequest.customerAddress())
                 .company(company)
                 .customer(customer)
                 .build();
 
         Bill saved = billRepository.save(bill);
-        List<BillLine> billLines = createBillLines(billRequest, bill, request);
-        saved.setBillLines(billLines);
+
+        List<BillLine> billLines = createBillLines(billRequest, saved, request);
+        saved.setBillLines(new ArrayList<>(billLines));
+        saved = billRepository.save(saved);
+
+        String path = pdfService.generateBillPdf(saved);
+        saved.setPdfPath(path);
         Bill finalSaved = billRepository.save(saved);
 
         return billMapper.billToBillDTO(finalSaved, new BillDTO());

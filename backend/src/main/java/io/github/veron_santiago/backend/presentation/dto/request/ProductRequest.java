@@ -7,13 +7,13 @@ import java.math.BigDecimal;
 public record ProductRequest(@NotBlank(message = "El nombre del producto no puede estar vacío")
                              @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
                              @Pattern(
-                                     regexp = "^[\\p{L}0-9 .,'-)(/+%:]$",
+                                     regexp = "^[\\p{L}0-9 .,'-)(/+%:]+$",
                                      message = "El nombre solo puede contener letras, números y ciertos símbolos")
                              String name,
 
                              @Size(max = 8, message = "El código no puede tener más de 8 caracteres")
                              @Pattern(
-                                     regexp = "^[a-zA-Z0-9_.-]$",
+                                     regexp = "^[a-zA-Z0-9_.-]+$",
                                      message = "El código solo puede contener letras, números, puntos, guiones y guiones bajos")
                              String code,
 

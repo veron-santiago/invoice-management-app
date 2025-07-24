@@ -43,9 +43,8 @@ public class BillLine {
     @Column(precision = 10, scale = 2, nullable = false)
     private BigDecimal total;
 
-    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bill_id", nullable = false)
+    @JoinColumn(name = "bill_id")
     private Bill bill;
 
     @ManyToOne(fetch = FetchType.LAZY)
