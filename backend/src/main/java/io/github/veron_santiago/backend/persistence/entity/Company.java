@@ -35,6 +35,9 @@ public class Company {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(name = "logo_path")
+    private String logoPath;
+
     private String address;
 
     @Builder.Default

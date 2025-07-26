@@ -17,13 +17,22 @@ import io.github.veron_santiago.backend.service.interfaces.ICompanyService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.JwtUtil;
 import io.github.veron_santiago.backend.util.mapper.CompanyMapper;
+import org.springframework.core.io.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.commons.io.FilenameUtils;
+import org.springframework.core.io.UrlResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 
 @Service
@@ -142,6 +151,39 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     @Override
+    public Resource getLogo(HttpServletRequest request) throws MalformedURLException {
+        Company company = getCompanyByRequest(request);
+        Path path = Paths.get(System.getProperty("user.dir"))
+                .getParent()
+                .resolve(company.getLogoPath());
+
+        if (Files.notExists(path)) throw new ObjectNotFoundException("Imagen no encontrada");
+
+        return new UrlResource(path.toUri());
+    }
+
+    @Override
+    public void uploadLogo(MultipartFile file, HttpServletRequest request) {
+        Long companyId = authUtil.getAuthenticatedCompanyId(request);
+        Company company = companyRepository.findById(companyId).orElseThrow(()-> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
+
+        Path path = getLogosPath(companyId);
+        String extension = FilenameUtils.getExtension(file.getOriginalFilename());
+        String fileName = "logo." + extension;
+        Path logoPath = path.resolve(fileName);
+
+        try {
+            Files.createDirectories(path);
+            file.transferTo(logoPath.toFile());
+        } catch (IOException e) {
+            throw new IllegalStateException("Error al guardar la imagen");
+        }
+
+        company.setLogoPath("storage/logos/" + companyId + "/" + fileName);
+        companyRepository.save(company);
+    }
+
+    @Override
     public void deleteCompany(HttpServletRequest request) {
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         if (companyRepository.existsById(companyId)) companyRepository.deleteById(companyId);
@@ -175,12 +217,17 @@ public class CompanyServiceImpl implements ICompanyService {
         message.setText("Haz click en el siguiente enlace para verificar tu correo: " + verificationUrl);
         javaMailSender.send(message);
     }
-
     private Company getCompanyByRequest(HttpServletRequest request){
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         return companyRepository.findById(companyId)
                 .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
     }
-
+    private Path getLogosPath(Long companyId){
+        return Paths.get(System.getProperty("user.dir"))
+                .getParent()
+                .resolve("storage")
+                .resolve("logos")
+                .resolve(companyId.toString());
+    };
 
 }

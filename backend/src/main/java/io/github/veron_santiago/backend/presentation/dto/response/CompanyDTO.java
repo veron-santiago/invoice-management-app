@@ -26,6 +26,7 @@ public class CompanyDTO {
     @NotBlank
     private String email;
     private String address;
+    private String logoPath;
     private boolean verified;
     private List<Long> bills;
     private Set<Long> customers;

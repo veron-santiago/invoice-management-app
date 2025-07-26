@@ -65,7 +65,7 @@ public class BillServiceImpl implements IBillService {
         Company company = getCompany(request);
 
         verifyEmptyCustomerName(billRequest);
-        verifyDuplicateProducts(billRequest);
+        verifyDuplicateProductOrCode(billRequest);
 
         AtomicReference<BigDecimal> total = calculateTotal(billRequest);
         Customer customer = getCustomerOrCreate(company, billRequest, request);
@@ -91,7 +91,7 @@ public class BillServiceImpl implements IBillService {
         saved.setBillLines(new ArrayList<>(billLines));
         saved = billRepository.save(saved);
 
-        String path = pdfService.generateBillPdf(saved);
+        String path = pdfService.generateBillPdf(saved, request);
         saved.setPdfPath(path);
         Bill finalSaved = billRepository.save(saved);
 
@@ -121,12 +121,17 @@ public class BillServiceImpl implements IBillService {
         return companyRepository.findById(companyId)
                 .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
     }
-    private void verifyDuplicateProducts(BillRequest billRequest){
+    private void verifyDuplicateProductOrCode(BillRequest billRequest){
         Set<String> names = new HashSet<>();
+        Set<String> codes = new HashSet<>();
         for (BillLineRequest line : billRequest.billLineRequests()) {
-            String upperCaseName = line.name().toUpperCase();
-            if (!names.add(upperCaseName)) {
+            String name = line.name().toLowerCase();
+            String code = line.code();
+            if (!names.add(name)) {
                 throw new InvalidFieldException(ErrorMessages.DUPLICATE_PRODUCT_IN_BILL.getMessage());
+            }
+            if (code != null && !codes.add(code.toLowerCase())){
+                throw new InvalidFieldException(ErrorMessages.DUPLICATE_CODE_IN_BILL.getMessage());
             }
         }
     }

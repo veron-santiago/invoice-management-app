@@ -16,6 +16,7 @@ public enum ErrorMessages {
     ACCESS_DENIED_UPDATE("No tienes permiso para modificar este recurso"),
     ACCESS_DENIED_DELETE("No tienes permiso para eliminar este recurso"),
     DUPLICATE_PRODUCT_IN_BILL("No se permiten productos repetidos en una factura"),
+    DUPLICATE_CODE_IN_BILL("No se permiten códigos repetidos en una factura"),
     EMPTY_FIELD("El campo no puede estar vacío"),
     CONFLICT_COMPANY_NAME("El nombre ya se encuentra en uso"),
     INCORRECT_CURRENT_PASSWORD("Contraseña actual incorrecta"),
