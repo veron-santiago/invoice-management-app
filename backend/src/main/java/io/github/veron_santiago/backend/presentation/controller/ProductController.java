@@ -5,6 +5,7 @@ import io.github.veron_santiago.backend.presentation.dto.response.ProductDTO;
 import io.github.veron_santiago.backend.presentation.dto.update.ProductUpdateRequest;
 import io.github.veron_santiago.backend.service.interfaces.IProductService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class  ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductDTO> createProduct(@RequestBody ProductRequest productRequest, HttpServletRequest request){
+    public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductRequest productRequest, HttpServletRequest request){
         return ResponseEntity.ok(productService.createProduct(productRequest, request));
     }
 
@@ -36,7 +37,7 @@ public class  ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @RequestBody ProductUpdateRequest productRequest, HttpServletRequest request){
+    public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductUpdateRequest productRequest, HttpServletRequest request){
         return ResponseEntity.ok(productService.updateProduct(id, productRequest, request));
     }
 

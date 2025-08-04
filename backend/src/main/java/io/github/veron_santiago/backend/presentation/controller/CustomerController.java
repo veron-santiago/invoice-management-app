@@ -5,6 +5,7 @@ import io.github.veron_santiago.backend.presentation.dto.response.CustomerDTO;
 import io.github.veron_santiago.backend.presentation.dto.update.CustomerUpdateRequest;
 import io.github.veron_santiago.backend.service.interfaces.ICustomerService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<CustomerDTO> createCustomer(@RequestBody CustomerRequest customerRequest, HttpServletRequest request){
+    public ResponseEntity<CustomerDTO> createCustomer(@Valid @RequestBody CustomerRequest customerRequest, HttpServletRequest request){
         return ResponseEntity.ok(customerService.createCustomer(customerRequest, request));
     }
 
@@ -36,7 +37,7 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CustomerDTO> updateCustomer(@PathVariable Long id, @RequestBody CustomerUpdateRequest customerRequest, HttpServletRequest request){
+    public ResponseEntity<CustomerDTO> updateCustomer(@PathVariable Long id, @Valid @RequestBody CustomerUpdateRequest customerRequest, HttpServletRequest request){
         return ResponseEntity.ok(customerService.updateCustomer(id, customerRequest, request));
     }
 

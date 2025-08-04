@@ -5,15 +5,16 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
 public record ProductUpdateRequest(@Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
+                                   @NotBlank(message = "El nombre debe estar declarado")
                                    @Pattern(
-                                           regexp = "^[\\p{L}0-9 .,'-)(/+%:]+$",
-                                           message = "El nombre solo puede contener letras, números y ciertos símbolos")
+                                           regexp = "^[\\p{L}0-9 .,'-)(/+%:]*$",
+                                           message = "El nombre contiene caracteres inválidos")
                                    String name,
 
                                    @Size(max = 8, message = "El código no puede tener más de 8 caracteres")
                                    @Pattern(
-                                           regexp = "^[a-zA-Z0-9_.-]+$",
-                                           message = "El código solo puede contener letras, números, puntos, guiones y guiones bajos")
+                                           regexp = "^[a-zA-Z0-9_.-]*$",
+                                           message = "El código contiene caracteres inválidos")
                                    String code,
 
                                    @DecimalMin(value = "0.01", message = "El precio mínimo es 0.01")

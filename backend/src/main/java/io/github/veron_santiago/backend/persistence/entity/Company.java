@@ -43,6 +43,11 @@ public class Company {
     @Builder.Default
     private boolean verified = false;
 
+    @Column(name = "mp_access_token")
+    private String mpAccessToken;
+    @Column(name = "mp_refresh_token")
+    private String mpRefreshToken;
+
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("billNumber DESC")
     private List<Bill> bills;

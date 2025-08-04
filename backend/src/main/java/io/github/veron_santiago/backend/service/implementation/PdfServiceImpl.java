@@ -11,7 +11,6 @@ import io.github.veron_santiago.backend.util.AuthUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
-import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.io.RandomAccessRead;
 import org.apache.pdfbox.io.RandomAccessReadBuffer;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -44,10 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,7 +61,7 @@ public class PdfServiceImpl implements IPdfService {
     }
 
     @Override
-    public String generateBillPdf(Bill bill, HttpServletRequest request) throws IOException {
+    public String generateBillPdf(Bill bill, HttpServletRequest request, boolean includeQr) throws IOException {
         try (PDDocument template = getTemplate()) {
             PDDocumentCatalog catalog = template.getDocumentCatalog();
             PDAcroForm form = catalog.getAcroForm();
@@ -103,7 +99,7 @@ public class PdfServiceImpl implements IPdfService {
             }
 
             Resource logo = companyService.getLogo(request);
-            if (logo != null && !logo.exists()){
+            if (logo != null && logo.exists()){
                 try (InputStream in = logo.getInputStream()) {
                     BufferedImage buffered = ImageIO.read(in);
                     PDImageXObject pdImage = LosslessFactory.createFromImage(template, buffered);
@@ -141,7 +137,9 @@ public class PdfServiceImpl implements IPdfService {
             form.getField("companyNameTittle").setValue(bill.getCompanyName());
             form.getField("billNumber").setValue(billNumber);
             form.getField("issue_af_date").setValue(dateFormatter(bill.getIssueDate()));
-            form.getField("due_af_date").setValue(dateFormatter(bill.getDueDate()));
+            if (bill.getDueDate() != null){
+                form.getField("due_af_date").setValue(dateFormatter(bill.getDueDate()));
+            }
             form.getField("companyName").setValue(bill.getCompanyName());
             form.getField("customerName").setValue(bill.getCustomerName());
             form.getField("companyInfo").setValue(getCompanyInfo(bill));
@@ -167,7 +165,6 @@ public class PdfServiceImpl implements IPdfService {
         Path path = Paths.get(System.getProperty("user.dir"))
                             .getParent()
                             .resolve(bill.getPdfPath());
-        System.out.println(path);
         if (Files.notExists(path)) {
             throw new ObjectNotFoundException(ErrorMessages.BILL_NOT_FOUND.getMessage());
         }

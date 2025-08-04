@@ -42,9 +42,9 @@ public class JwtTokenValidator extends OncePerRequestFilter {
         if (jwtToken.startsWith("Bearer ") && jwtToken.length() > 7) {
             jwtToken = jwtToken.substring(7);
             DecodedJWT decodedJWT = jwtUtil.validateToken(jwtToken);
-            String username = jwtUtil.extractCompanyName(decodedJWT);
+            String id = decodedJWT.getSubject();
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(id);
 
             Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 

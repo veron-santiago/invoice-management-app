@@ -67,7 +67,7 @@ public class CompanyServiceImpl implements ICompanyService {
             return new AuthResponse(email, "Ya existe una compañia registrada con ese correo.", null, false);
         }
 
-        companyRepository.save(
+        Company company = companyRepository.save(
                 Company.builder()
                         .companyName(companyName)
                         .password(passwordEncoder.encode(password))
@@ -92,7 +92,7 @@ public class CompanyServiceImpl implements ICompanyService {
 
         String address = companyUpdateAddress.address();
 
-        if (address == null || address.isEmpty()) throw new InvalidFieldException(ErrorMessages.EMPTY_FIELD.getMessage());
+        if (address == null) throw new InvalidFieldException(ErrorMessages.EMPTY_FIELD.getMessage());
 
         company.setAddress(address);
         Company savedCompany = companyRepository.save(company);
@@ -102,13 +102,10 @@ public class CompanyServiceImpl implements ICompanyService {
     @Override
     public CompanyDTO updateName(CompanyUpdateName companyUpdateName, HttpServletRequest request) {
         Company company = getCompanyByRequest(request);
-
         String name = companyUpdateName.name();
-
         if (name == null || name.isEmpty()) throw new InvalidFieldException(ErrorMessages.EMPTY_FIELD.getMessage());
 
         Company comp = companyRepository.findByCompanyName(name).orElse(null);
-
         if (comp != null && !comp.equals(company)) throw new ResourceConflictException(ErrorMessages.CONFLICT_COMPANY_NAME.getMessage());
 
         company.setCompanyName(name);
@@ -117,26 +114,24 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     @Override
-    public CompanyDTO updateEmail(CompanyUpdateEmail companyUpdateEmail, HttpServletRequest request) {
+    public void updateEmail(CompanyUpdateEmail companyUpdateEmail, HttpServletRequest request) {
         Company company = getCompanyByRequest(request);
         String currentEmail = company.getEmail();
         String newEmail = companyUpdateEmail.email().toLowerCase();
 
-        if (newEmail.equalsIgnoreCase(company.getEmail())) throw new InvalidFieldException(ErrorMessages.EMAIL_SAME_AS_CURRENT.getMessage());
+        if (newEmail.equalsIgnoreCase(currentEmail)) throw new InvalidFieldException(ErrorMessages.EMAIL_SAME_AS_CURRENT.getMessage());
 
-        Optional<Company> existingCompany = companyRepository.findByEmail(newEmail);
-        if (existingCompany.isPresent()) throw new ResourceConflictException(ErrorMessages.EMAIL_ALREADY_IN_USE.getMessage());
+        Company existingCompany = companyRepository.findByEmail(newEmail).orElse(null);
+        if (existingCompany != null) throw new ResourceConflictException(ErrorMessages.EMAIL_ALREADY_IN_USE.getMessage());
 
         company.setEmail(newEmail);
-        Company savedCompany = companyRepository.save(company);
+        companyRepository.save(company);
 
         SimpleMailMessage notification = new SimpleMailMessage();
         notification.setTo(currentEmail);
         notification.setSubject("Tu email ha sido cambiado");
         notification.setText("Tu dirección de correo fue actualizada a: " + newEmail);
         javaMailSender.send(notification);
-
-        return companyMapper.companyToCompanyDTO(savedCompany, new CompanyDTO());
     }
 
     @Override
@@ -153,11 +148,14 @@ public class CompanyServiceImpl implements ICompanyService {
     @Override
     public Resource getLogo(HttpServletRequest request) throws MalformedURLException {
         Company company = getCompanyByRequest(request);
+        String logoPath = company.getLogoPath();
+        if (logoPath == null || logoPath.isBlank()) return null;
+
         Path path = Paths.get(System.getProperty("user.dir"))
                 .getParent()
-                .resolve(company.getLogoPath());
+                .resolve(logoPath);
 
-        if (Files.notExists(path)) throw new ObjectNotFoundException("Imagen no encontrada");
+        if (Files.notExists(path)) return null;
 
         return new UrlResource(path.toUri());
     }
@@ -192,8 +190,7 @@ public class CompanyServiceImpl implements ICompanyService {
 
     @Override
     public boolean verifyEmail(String token) {
-        String email = jwtUtil.extractCompanyNameFromToken(token);
-
+        String email = jwtUtil.extractSubject(token);
         if (email == null) return false;
 
         Optional<Company> optionalCompany = companyRepository.findByEmail(email);

@@ -8,14 +8,14 @@ import jakarta.validation.constraints.Size;
 public record CustomerRequest(@NotBlank(message = "El nombre del cliente no puede estar vacío")
                               @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
                               @Pattern(
-                                      regexp = "^[\\p{L} .,'-]+$",
-                                      message = "El nombre contiene caracteres no permitidos")
+                                      regexp = "^[\\p{L} .,'-]*$",
+                                      message = "El nombre contiene caracteres inválidos")
                               String name,
 
-                              @Size(min = 5, max = 200, message = "La dirección debe tener entre 5 y 200 caracteres")
+                              @Size(max = 200, message = "La dirección debe tener como máximo 200 caracteres")
                               @Pattern(
-                                      regexp = "^[\\p{L}0-9 .,'°/#-]+$",
-                                      message = "La dirección contiene caracteres no permitidos")
+                                      regexp = "^[\\p{L}0-9 .,'°/#-]*$",
+                                      message = "La dirección contiene caracteres inválidos")
                               String address,
 
                               @Email(message = "Debe ingresar un email válido")

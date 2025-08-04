@@ -4,11 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record AuthRequest(@NotBlank(message = "El nombre es obligatorio")
-                          @Size(min = 3, max = 100, message = "El nombre debe tener entre 3 y 100 caracteres")
-                          @Pattern(
-                                  regexp = "^[\\p{L} .,'-_]+$",
-                                  message = "El nombre contiene caracteres no permitidos")
+public record AuthRequest(@NotBlank(message = "Ingrese un nombre o email")
+                          @Size(min = 3, message = "El nombre o email debe tener al menos 3 caracteres")
+                          @Size(max = 100, message = "El nombre o email debe tener como máximo 100 caracteres")
                           String companyName,
 
                           @NotBlank(message = "La contraseña es obligatoria")

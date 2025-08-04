@@ -9,6 +9,7 @@ import io.github.veron_santiago.backend.presentation.dto.response.CustomerDTO;
 import io.github.veron_santiago.backend.presentation.dto.update.CustomerUpdateRequest;
 import io.github.veron_santiago.backend.service.exception.ErrorMessages;
 import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
+import io.github.veron_santiago.backend.service.exception.ResourceConflictException;
 import io.github.veron_santiago.backend.service.interfaces.ICustomerService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.CustomerMapper;
@@ -17,6 +18,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +41,10 @@ public class CustomerServiceImpl implements ICustomerService {
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
         Company company = companyRepository.findById(companyId)
                 .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
+
+        if (customerRepository.existsByNameAndCompanyId(customerRequest.name(), companyId)) {
+            throw new ResourceConflictException("Ya existe un cliente con ese nombre");
+        }
 
         Customer customer = Customer.builder()
                 .name(customerRequest.name())
@@ -81,15 +87,20 @@ public class CustomerServiceImpl implements ICustomerService {
         String email = customerRequest.email();
         String address = customerRequest.address();
 
+        Customer customer = customerRepository.findByNameAndCompanyId(name, companyId);
+        if (customer != null && !Objects.equals(customer.getId(), id)) {
+            throw new ResourceConflictException("Ya existe un cliente con ese nombre");
+        }
+
         if (name != null && !name.isBlank()){
             existingCustomer.setName(name);
         }
-        if (email != null){
-            existingCustomer.setEmail(email.isBlank() ? null : email);
-        }
-        if (address != null){
-            existingCustomer.setAddress(address.isBlank() ? null : address);
-        }
+
+        if (email != null && email.isEmpty()) email = null;
+        existingCustomer.setEmail(email);
+
+        if (address != null && address.isEmpty()) address = null;
+        existingCustomer.setAddress(address);
 
         return customerMapper.customerToCustomerDTO(customerRepository.save(existingCustomer), new CustomerDTO());
     }

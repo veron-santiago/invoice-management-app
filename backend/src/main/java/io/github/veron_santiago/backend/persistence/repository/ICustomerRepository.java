@@ -9,4 +9,7 @@ import java.util.List;
 @Repository
 public interface ICustomerRepository extends JpaRepository<Customer, Long> {
     List<Customer> findByCompanyId(Long companyId);
+    boolean existsByNameAndCompanyId(String name, Long companyId);
+    Customer findByNameAndCompanyId(String name, Long companyId);
+
 }

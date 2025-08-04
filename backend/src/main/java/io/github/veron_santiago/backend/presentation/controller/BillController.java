@@ -6,6 +6,7 @@ import io.github.veron_santiago.backend.presentation.dto.response.BillDTO;
 import io.github.veron_santiago.backend.service.interfaces.IBillService;
 import io.github.veron_santiago.backend.service.interfaces.IPdfService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -47,7 +48,7 @@ public class BillController {
     }
 
     @PostMapping
-    public ResponseEntity<BillDTO> createBill(@RequestBody BillRequest billRequest, HttpServletRequest request) throws IOException {
+    public ResponseEntity<BillDTO> createBill(@Valid @RequestBody BillRequest billRequest, HttpServletRequest request) throws IOException {
         return ResponseEntity.ok(billService.createBill(billRequest, request));
     }
 

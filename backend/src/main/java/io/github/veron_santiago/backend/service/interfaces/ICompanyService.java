@@ -19,7 +19,7 @@ public interface ICompanyService {
     CompanyDTO getCompany(HttpServletRequest request);
     CompanyDTO updateAddress(CompanyUpdateAddress companyUpdateAddress, HttpServletRequest request);
     CompanyDTO updateName(CompanyUpdateName companyUpdateName, HttpServletRequest request);
-    CompanyDTO updateEmail(CompanyUpdateEmail companyUpdateEmail, HttpServletRequest request);
+    void updateEmail(CompanyUpdateEmail companyUpdateEmail, HttpServletRequest request);
     void updatePassword(CompanyUpdatePassword updatePassword, HttpServletRequest request);
     Resource getLogo(HttpServletRequest request) throws MalformedURLException;
     void uploadLogo(MultipartFile file, HttpServletRequest request) throws IOException;

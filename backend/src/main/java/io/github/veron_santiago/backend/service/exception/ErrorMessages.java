@@ -23,7 +23,9 @@ public enum ErrorMessages {
     PASSWORD_SAME_AS_CURRENT("La nueva contraseña debe ser distinta de la actual"),
     EMAIL_SAME_AS_CURRENT("El nuevo email debe ser distinto al actual"),
     EMAIL_ALREADY_IN_USE("El email ya se encuentra en uso"),
-    PDF_GENERATE_ERROR("No se pudo generar el PDF. Intente nuevamente más tarde.");
+    PDF_GENERATE_ERROR("No se pudo generar el PDF. Intente nuevamente más tarde."),
+    PRODUCT_NAME_ALREADY_EXISTS("Ya existe un producto con ese nombre"),
+    PRODUCT_CODE_ALREADY_EXISTS("Ya existe un producto con ese código");
 
 
 

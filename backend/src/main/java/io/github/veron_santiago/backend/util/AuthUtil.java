@@ -14,7 +14,7 @@ public class AuthUtil {
 
     public Long getAuthenticatedCompanyId(HttpServletRequest request) {
         String token = extractTokenFromHeader(request);
-        return jwtUtil.extractCompanyIdFromToken(token);
+        return Long.valueOf(jwtUtil.extractSubject(token));
     }
 
     private String extractTokenFromHeader(HttpServletRequest request) {

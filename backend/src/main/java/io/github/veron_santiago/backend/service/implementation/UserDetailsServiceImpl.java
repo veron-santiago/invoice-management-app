@@ -32,26 +32,32 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String companyName) throws UsernameNotFoundException {
-        Company company = companyRepository.findByCompanyNameOrEmail(companyName)
-                .orElseThrow( () -> new UsernameNotFoundException("Compañia no encontrada con el nombre o email: " + companyName));
-
+    public UserDetails loadUserByUsername(String nameOrEmail) throws UsernameNotFoundException {
+        Company company;
+        if (nameOrEmail.matches("\\d+")) {
+            Long id = Long.valueOf(nameOrEmail);
+            company = companyRepository.findById(id)
+                    .orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
+        } else {
+            company = companyRepository.findByCompanyNameOrEmail(nameOrEmail)
+                    .orElseThrow(() -> new ObjectNotFoundException(
+                            "Compañia no encontrada con nombre o email: " + nameOrEmail));
+        }
         return User.builder()
-                .username(company.getCompanyName())
+                .username(String.valueOf(company.getId()))
                 .password(company.getPassword())
                 .build();
     }
 
-    private Authentication authenticate(String companyName, String password){
-        UserDetails userDetails = this.loadUserByUsername(companyName);
+    private Authentication authenticate(String nameOrEmail, String password){
 
-        if(userDetails == null){
-            throw new BadCredentialsException("Nombre de la compañia o contraseña invalida");
-        }
-        if(!passwordEncoder.matches(password, userDetails.getPassword())){
+        Company company = companyRepository.findByCompanyNameOrEmail(nameOrEmail)
+                .orElseThrow(() -> new BadCredentialsException("Nombre o email inválido"));
+
+        if(!passwordEncoder.matches(password, company.getPassword())){
             throw new BadCredentialsException("Contraseña invalida");
         }
-        return new UsernamePasswordAuthenticationToken(companyName, userDetails.getPassword());
+        return new UsernamePasswordAuthenticationToken(String.valueOf(company.getId()), company.getPassword());
     }
 
     public AuthResponse loginUser(AuthRequest authRequest){

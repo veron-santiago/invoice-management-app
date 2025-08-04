@@ -10,15 +10,18 @@ import io.github.veron_santiago.backend.presentation.dto.update.ProductUpdateReq
 import io.github.veron_santiago.backend.service.exception.ErrorMessages;
 import io.github.veron_santiago.backend.service.exception.InvalidFieldException;
 import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
+import io.github.veron_santiago.backend.service.exception.ResourceConflictException;
 import io.github.veron_santiago.backend.service.interfaces.IProductService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.ProductMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,9 +50,18 @@ public class ProductServiceImpl implements IProductService {
         String name = productRequest.name();
         BigDecimal price = productRequest.price();
         String code = productRequest.code();
+        if (code != null && code.isEmpty()) code = null;
 
         if ((name == null || name.isBlank()) || (price == null || price.compareTo(BigDecimal.ZERO) <= 0)){
             throw new InvalidFieldException("El nombre y el precio del producto deben estar declarados");
+        }
+
+        if (productRepository.existsByNameAndCompanyId(name, companyId)){
+            throw new ResourceConflictException("Ya existe un producto con ese nombre");
+        }
+
+        if (code != null && productRepository.existsByCodeAndCompanyId(code, companyId)){
+            throw new ResourceConflictException("Ya existe un producto con ese código");
         }
 
         Product product = Product.builder()
@@ -82,35 +94,42 @@ public class ProductServiceImpl implements IProductService {
     }
 
     @Override
-    public ProductDTO updateProduct(Long id, ProductUpdateRequest productRequest, HttpServletRequest request){
-        Long companyId = authUtil.getAuthenticatedCompanyId(request);
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND.getMessage()));
+    @Transactional
+    public ProductDTO updateProduct(Long id, ProductUpdateRequest request, HttpServletRequest httpRequest) {
+        Long companyId = authUtil.getAuthenticatedCompanyId(httpRequest);
+        Product existing = productRepository.findById(id)
+                .orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND.getMessage()));
 
-        if (!existingProduct.getCompany().getId().equals(companyId)) {
+        if (!existing.getCompany().getId().equals(companyId)) {
             throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_UPDATE.getMessage());
         }
 
-        String name = productRequest.name();
-        String code = productRequest.code();
-        BigDecimal price = productRequest.price();
+        String name = request.name();
+        String code = request.code();
+        if (code != null && code.isBlank()) code = null;
+        BigDecimal price = request.price();
 
-        if (name == null && code == null && price == null) throw new InvalidFieldException(ErrorMessages.PRODUCT_EMPTY_FIELDS.getMessage());
-
-        if (name != null){
-            if (name.isBlank()) throw new InvalidFieldException(ErrorMessages.PRODUCT_NAME_IS_EMPTY.getMessage());
-            existingProduct.setName(name);
-        }
-        if (code != null){
-            if (code.isBlank()) throw new InvalidFieldException(ErrorMessages.PRODUCT_CODE_IS_EMPTY.getMessage());
-            existingProduct.setCode(code);
-        }
-        if (price != null) {
-            if (price.compareTo(BigDecimal.ZERO) <= 0) throw new InvalidFieldException(ErrorMessages.PRODUCT_PRICE_MUST_BE_POSITIVE.getMessage());
-            existingProduct.setPrice(price);
+        if (name == null || name.isBlank()) {
+            throw new InvalidFieldException(ErrorMessages.PRODUCT_NAME_IS_EMPTY.getMessage());
         }
 
-        return productMapper.productToProductDTO(productRepository.save(existingProduct), new ProductDTO());
+        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidFieldException(ErrorMessages.PRODUCT_PRICE_MUST_BE_POSITIVE.getMessage());
+        }
+
+        if (productRepository.existsByNameAndCompanyIdAndIdNot(name, companyId, id)) {
+            throw new ResourceConflictException(ErrorMessages.PRODUCT_NAME_ALREADY_EXISTS.getMessage());
+        }
+
+        if (code != null && productRepository.existsByCodeAndCompanyIdAndIdNot(code, companyId, id)) {
+            throw new ResourceConflictException(ErrorMessages.PRODUCT_CODE_ALREADY_EXISTS.getMessage());
+        }
+
+        existing.setName(name);
+        existing.setCode(code);
+        existing.setPrice(price);
+
+        return productMapper.productToProductDTO(productRepository.save(existing), new ProductDTO());
     }
 
     @Override
