@@ -81,7 +81,7 @@ public class BillServiceImpl implements IBillService {
                 .billNumber((long) (company.getBills().size() + 1))
                 .issueDate(LocalDate.now())
                 .dueDate( billRequest.includeQr() ? LocalDate.now().plusDays(30) : null)
-                .totalAmount(BigDecimal.valueOf(Float.parseFloat(String.valueOf(total))))
+                .totalAmount(total.get())
                 .companyName(company.getCompanyName())
                 .companyEmail(company.getEmail())
                 .companyAddress(company.getAddress())
