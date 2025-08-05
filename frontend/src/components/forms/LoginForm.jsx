@@ -14,7 +14,7 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:8080/auth/log-in', {
+      const response = await fetch('https://invoice-management-app-3g3w.onrender.com/auth/log-in', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

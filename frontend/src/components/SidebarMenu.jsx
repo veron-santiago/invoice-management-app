@@ -8,7 +8,7 @@ export default function SidebarMenu() {
   const [showMPButton, setShowMPButton] = useState(false)
 
   useEffect(() => {
-    fetch('http://localhost:8080/companies', { 
+    fetch('https://invoice-management-app-3g3w.onrender.com/companies', { 
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       } 

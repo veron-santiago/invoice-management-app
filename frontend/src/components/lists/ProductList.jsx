@@ -51,7 +51,7 @@ const ProductList = () => {
   useEffect(() => {
     const token = localStorage.getItem('token')
 
-    fetch('http://localhost:8080/products', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/products', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -104,7 +104,7 @@ const ProductList = () => {
 
   const confirmDelete = () => {
     const token = localStorage.getItem('token')
-    fetch(`http://localhost:8080/products/${productToDelete.id}`, {
+    fetch(`https://invoice-management-app-3g3w.onrender.com/products/${productToDelete.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -149,7 +149,7 @@ const ProductList = () => {
     
     console.log('Sending product update data:', updateData) // Debug log
 
-    fetch(`http://localhost:8080/products/${editingProduct}`, {
+    fetch(`https://invoice-management-app-3g3w.onrender.com/products/${editingProduct}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -230,7 +230,7 @@ const ProductList = () => {
       return
     }
 
-    fetch('http://localhost:8080/products', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/products', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

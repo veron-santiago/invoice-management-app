@@ -44,7 +44,6 @@ export default function BillGeneratorPage() {
   const [serviceError, setServiceError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Auto-dismiss alerts after 5 seconds
   useEffect(() => {
     if (Object.keys(fieldErrors).length > 0) {
       const timer = setTimeout(() => {
@@ -147,7 +146,6 @@ export default function BillGeneratorPage() {
   const handleConfirmGenerate = () => {
     setConfirmDialogOpen(false);
     
-    // Clear previous errors and success messages
     setFieldErrors({});
     setServiceError("");
     setSuccessMessage("");
@@ -186,7 +184,7 @@ export default function BillGeneratorPage() {
       includeQr: false
     };
   
-    fetch("http://localhost:8080/bills", {
+    fetch("https://invoice-management-app-3g3w.onrender.com/bills", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -199,17 +197,14 @@ export default function BillGeneratorPage() {
         const e = await response.json();
         console.log(e);
         
-        // Handle different types of errors
         const newFieldErrors = {};
         let newServiceError = "";
         
-        // Check if it's a service error (has message property)
         if (e.message) {
           newServiceError = e.message;
         } else {
-          // Handle field validation errors
           
-          // Check customer field errors
+          
           if (e.customerName) {
             newFieldErrors.customerName = e.customerName;
           }
@@ -220,19 +215,16 @@ export default function BillGeneratorPage() {
             newFieldErrors.customerAddress = e.customerAddress;
           }
           
-          // Check bill line errors
           const billLineError = searchErrorInBillLines(e);
           if (billLineError) {
             const { error, index, field } = billLineError;
             newFieldErrors[`billLine_${index}_${field}`] = error;
           }
           
-          // Check general billLineRequests error (like min/max size)
           if (e.billLineRequests && typeof e.billLineRequests === 'string') {
             newServiceError = e.billLineRequests;
           }
           
-          // If no specific field errors found but we have other errors, treat as service error
           if (Object.keys(newFieldErrors).length === 0 && !newServiceError) {
             newServiceError = "Error al generar la factura";
           }
@@ -247,7 +239,6 @@ export default function BillGeneratorPage() {
     })
     .then((data) => {
       console.log("Factura generada:", data);
-      // Show success message and reset form
       setSuccessMessage("¡Factura generada!");
       resetForm();
     })
@@ -330,11 +321,11 @@ export default function BillGeneratorPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("http://localhost:8080/customers", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("https://invoice-management-app-3g3w.onrender.com/customers", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then(setCustomers)
       .catch(() => {});
-    fetch("http://localhost:8080/products", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("https://invoice-management-app-3g3w.onrender.com/products", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then(setProducts)
       .catch(() => {});

@@ -34,7 +34,7 @@ const BillList = () => {
   useEffect(() => {
     const token = localStorage.getItem('token')
 
-    fetch('http://localhost:8080/bills', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/bills', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {

@@ -11,7 +11,7 @@ function CompanyPage() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     
-    fetch('http://localhost:8080/companies', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/companies', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {

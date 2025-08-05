@@ -10,7 +10,7 @@ const ProfileAvatar = ({ sx = {}, textSx = {} }) => {
     const headers = {
       Authorization: `Bearer ${token}`
     }
-    const fetchLogo = fetch('http://localhost:8080/companies/logo', { headers })
+    const fetchLogo = fetch('https://invoice-management-app-3g3w.onrender.com/companies/logo', { headers })
       .then(res => {
         if (res.ok) {
           return res.blob()

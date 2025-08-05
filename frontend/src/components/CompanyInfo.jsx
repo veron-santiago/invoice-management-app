@@ -71,7 +71,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const updateData = { name: nameForm.trim() }
 
-    fetch('http://localhost:8080/companies/name', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/companies/name', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -106,7 +106,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const updateData = { email: emailForm.trim() }
 
-    fetch('http://localhost:8080/companies/email', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/companies/email', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -154,7 +154,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const updateData = { address: addressForm.trim() }
 
-    fetch('http://localhost:8080/companies/address', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/companies/address', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -202,7 +202,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const data = { actualPassword, newPassword }
 
-    fetch('http://localhost:8080/companies/password', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/companies/password', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -275,7 +275,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const formData = new FormData()
     formData.append('file', selectedFile)
-    fetch('http://localhost:8080/companies/logo', {
+    fetch('https://invoice-management-app-3g3w.onrender.com/companies/logo', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
