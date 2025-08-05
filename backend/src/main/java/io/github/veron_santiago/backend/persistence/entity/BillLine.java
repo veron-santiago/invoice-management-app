@@ -40,7 +40,7 @@ public class BillLine {
 
     @NotNull
     @DecimalMin(value = "0.01")
-    @Column(precision = 10, scale = 2, nullable = false)
+    @Column(precision = 14, scale = 2, nullable = false)
     private BigDecimal total;
 
     @ManyToOne(fetch = FetchType.LAZY)

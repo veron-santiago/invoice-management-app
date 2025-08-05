@@ -39,7 +39,7 @@ public class Bill {
 
     @NotNull
     @DecimalMin(value = "0.01")
-    @Column(name = "total", nullable = false, precision = 10, scale = 2)
+    @Column(name = "total", nullable = false, precision = 16, scale = 2)
     private BigDecimal totalAmount;
 
     @Column(name = "company_name")
