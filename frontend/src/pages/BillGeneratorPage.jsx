@@ -13,7 +13,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Snackbar
+  Snackbar,
+  CircularProgress
 } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -43,6 +44,7 @@ export default function BillGeneratorPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [serviceError, setServiceError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (Object.keys(fieldErrors).length > 0) {
@@ -145,7 +147,8 @@ export default function BillGeneratorPage() {
 
   const handleConfirmGenerate = () => {
     setConfirmDialogOpen(false);
-    
+    setIsGenerating(true);
+  
     setFieldErrors({});
     setServiceError("");
     setSuccessMessage("");
@@ -241,9 +244,11 @@ export default function BillGeneratorPage() {
       console.log("Factura generada:", data);
       setSuccessMessage("¡Factura generada!");
       resetForm();
+      setIsGenerating(false);
     })
     .catch((error) => {
       console.error("Error al generar la factura:", error);
+      setIsGenerating(false);
     });
 
     console.log("JSON enviado:", payload);
@@ -629,6 +634,27 @@ export default function BillGeneratorPage() {
             </Box>
           )}
           
+          {isGenerating && (
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 2, mb: 2 }}>
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  maxWidth: "70%", 
+                  backgroundColor: "#e3f2fd", 
+                  color: "#1976d2",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <span>Generando Factura...</span>
+                  <CircularProgress size={20} sx={{ color: "#1976d2" }} />
+                </Box>
+              </Alert>
+            </Box>
+          )}
+          
           <Box sx={{ display: "flex", justifyContent: "center", mt: 4, mb: 2, position: "relative" }}>
             {successMessage && (
               <Alert severity="success" sx={{ position: "absolute", top: -70, left: "50%", transform: "translateX(-50%)", zIndex: 1000, minWidth: "200px", maxWidth: "300px", textAlign: "center" }}>
@@ -640,6 +666,7 @@ export default function BillGeneratorPage() {
               variant="contained" 
               color="primary"
               size="large"
+              disabled={isGenerating}
               sx={{ px: 4, py: 1.5, fontSize: 16 }}
             >
               Generar Factura
