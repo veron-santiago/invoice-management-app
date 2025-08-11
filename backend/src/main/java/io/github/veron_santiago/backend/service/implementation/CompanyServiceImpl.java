@@ -206,6 +206,13 @@ public class CompanyServiceImpl implements ICompanyService {
         return true;
     }
 
+    @Override
+    public boolean hasAccessToken(HttpServletRequest request) {
+        Company company = authUtil.getCompanyByRequest(request);
+        String accessToken = company.getMpAccessToken();
+        return accessToken != null && !accessToken.isEmpty();
+    }
+
     private void sendVerificationEmail(String email, String verificationToken){
         String verificationUrl = "http://localhost:8080/auth/verify?token=" + verificationToken;
         SimpleMailMessage message = new SimpleMailMessage();

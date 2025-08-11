@@ -5,6 +5,7 @@ import SaveIcon from '@mui/icons-material/Save'
 import CancelIcon from '@mui/icons-material/Cancel'
 import ProfileAvatar from './ProfileAvatar'
 import { useNavigate } from 'react-router-dom'
+import MercadoPagoConnectButton from './MercadoPagoConnectButton'
 
 const CompanyInfo = ({ companyName, email, address }) => {
   const [hover, setHover] = useState(false)
@@ -296,40 +297,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
       })
   }
 
-  const handleConnectMercadoPago = async () => {
-    const popup = window.open('', 'MercadoPagoAuth', 'width=600,height=700');
-
-    const messageHandler = (event) => {
-      if (event.data?.mpLinked) {
-        setMpMessage('Cuenta vinculada correctamente');
-        setTimeout(() => setMpMessage(''), 5000);
-        popup.close();
-        window.removeEventListener('message', messageHandler);
-      } else if (event.data?.mpError) {
-        setMpMessage('Error al vincular: ' + event.data.mpError);
-        setTimeout(() => setMpMessage(''), 5000);
-        popup.close();
-        window.removeEventListener('message', messageHandler);
-      }
-    };
-
-    window.addEventListener('message', messageHandler);
-
-    try {
-      const token = localStorage.getItem('token');
-      const resp = await fetch('http://localhost:8080/mp/connect', {
-        headers: { Authorization: 'Bearer ' + token },
-      });
-      if (!resp.ok) throw new Error('No se pudo obtener la URL de Mercado Pago');
-      const url = await resp.text();
-      popup.location.href = url;
-    } catch (e) {
-      setMpMessage('Error al vincular Mercado Pago');
-      setTimeout(() => setMpMessage(''), 5000);
-      popup.close();
-      window.removeEventListener('message', messageHandler);
-    }
-  };
+  
   
   
 
@@ -450,12 +418,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
           <Button variant="outlined" onClick={openPasswordDialog}>Cambiar Contraseña</Button>
           <Button variant="outlined" onClick={openLogoDialog}>Cambiar Logo</Button>
           <Box sx={{ position: 'relative', display: 'inline-block' }}>
-            <Button 
-              variant="outlined" 
-              onClick={handleConnectMercadoPago}
-            >
-              Vincular Mercado Pago
-            </Button>
+            <MercadoPagoConnectButton value="Vincular con Mercado Pago" onConnectionSuccess={() => setMpMessage('Cuenta vinculada correctamente')} />
             {mpMessage && (
               <Box 
                 sx={{ 

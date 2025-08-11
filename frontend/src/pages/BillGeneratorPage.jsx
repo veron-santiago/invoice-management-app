@@ -20,6 +20,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { hasAccessToken } from "../services/companyService";
+import MercadoPagoConnectButton from "../components/MercadoPagoConnectButton";
 
 export default function BillGeneratorPage() {
   const navigate = useNavigate();
@@ -30,20 +32,54 @@ export default function BillGeneratorPage() {
   const [address, setAddress] = useState("");
   const [sendEmail, setSendEmail] = useState(false);
   const [includeQr, setIncludeQr] = useState(false);
+  const [isMpConnected, setIsMpConnected] = useState(true);
   const [items, setItems] = useState([{ product: "", code: "", price: "", quantity: "" }]);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const nameRef = useRef(null);
-  const emailRef = useRef(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [serviceError, setServiceError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showError, setShowError] = useState(false);
+
+  const nameRef = useRef();
+  const emailRef = useRef();
+  const addressRef = useRef();
   const productRefs = useRef([]);
   const codeRefs = useRef([]);
   const priceRefs = useRef([]);
   const quantityRefs = useRef([]);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [showError, setShowError] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [serviceError, setServiceError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+
+  const hasUnsavedChanges = name || email || address || items.some(item => item.product || item.code || item.price || item.quantity);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const checkMpConnection = async () => {
+        if (token) {
+            try {
+                const connected = await hasAccessToken(token);
+                setIsMpConnected(connected);
+            } catch (error) {
+                console.error("Error checking Mercado Pago connection:", error);
+                setIsMpConnected(false);
+            }
+        }
+    };
+
+    fetch("http://localhost:8080/customers", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.json())
+      .then((data) => setCustomers(data));
+
+    fetch("http://localhost:8080/products", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.json())
+      .then((data) => setProducts(data));
+
+    checkMpConnection();
+  }, [navigate]);
 
   useEffect(() => {
     if (Object.keys(fieldErrors).length > 0) {
@@ -276,7 +312,7 @@ export default function BillGeneratorPage() {
       item.quantity.trim() !== ""
     );
     const hasData = hasCustomerData || hasItemData;
-    setHasUnsavedChanges(hasData);
+
     return hasData;
   }, [name, email, address, items]);
 
@@ -624,17 +660,24 @@ export default function BillGeneratorPage() {
             </Box>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "flex-start", width: "70%", mt: 1 }}>
-            <FormControlLabel 
-              control={
-                <Checkbox 
-                  checked={includeQr} 
-                  onChange={() => setIncludeQr(!includeQr)} 
-                  size="small" 
-                />
-              } 
-              label="Incluir QR de pago" 
-              sx={{ mb: 2 }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={includeQr}
+                    onChange={(e) => setIncludeQr(e.target.checked)}
+                    name="includeQr"
+                    disabled={!isMpConnected}
+                  />
+                }
+                label="Incluir QR de pago"
+              />
+              {!isMpConnected && (
+                <Alert severity="warning" action={<MercadoPagoConnectButton onConnectionSuccess={() => setIsMpConnected(true)} buttonText="Vincular" />}>
+                  Cuenta no vinculada a Mercado Pago.
+                </Alert>
+              )}
+            </Box>  
           </Box>
           
           {serviceError && (
