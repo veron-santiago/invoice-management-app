@@ -75,4 +75,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_GATEWAY);
     }
 
+    @ExceptionHandler(InternalServerException.class)
+    public ResponseEntity<Map<String, Object>> handleInternalServer(InternalServerException e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", e.getMessage());
+        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
 }

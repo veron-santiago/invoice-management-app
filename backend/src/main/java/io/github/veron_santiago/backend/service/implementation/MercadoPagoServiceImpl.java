@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.github.veron_santiago.backend.persistence.entity.Company;
 import io.github.veron_santiago.backend.persistence.repository.ICompanyRepository;
 import io.github.veron_santiago.backend.service.exception.BadGatewayException;
+import io.github.veron_santiago.backend.service.exception.ErrorMessages;
 import io.github.veron_santiago.backend.service.exception.InvalidFieldException;
 import io.github.veron_santiago.backend.service.interfaces.IMercadoPagoService;
 import io.github.veron_santiago.backend.util.AuthUtil;
@@ -22,7 +23,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class MercadoPagoServiceImpl implements IMercadoPagoService {
@@ -63,24 +67,6 @@ public class MercadoPagoServiceImpl implements IMercadoPagoService {
         // &platform_id=mp
         // &state=RANDOM_ID
         // &redirect_uri=https://www.mercadopago.com.ar/developers/example/redirect-url
-    }
-
-    @Override
-    public void redirectToAuth(HttpServletResponse response, HttpServletRequest request) throws IOException {
-
-        String state = jwtUtil.generateState(authUtil.getAuthenticatedCompanyId(request), privateKey);
-
-        String url = UriComponentsBuilder.fromUriString("https://auth.mercadopago.com.ar/authorization")
-                .queryParam("client_id", clientId)
-                .queryParam("response_type", "code")
-                .queryParam("platform_id", "mp")
-                .queryParam("state", state)
-                .queryParam("redirect_uri", redirectUri)
-                .build()
-                .toUriString();
-
-        response.sendRedirect(url);
-
     }
 
     @Override
@@ -127,5 +113,79 @@ public class MercadoPagoServiceImpl implements IMercadoPagoService {
         company.setMpTokenExpiration(Instant.now().plusSeconds(expiresIn).getEpochSecond());
         companyRepository.save(company);
     }
+
+    @Override
+    public String createPaymentLink(Company company, BigDecimal amount) {
+        String accessToken = company.getMpAccessToken();
+        if (accessToken == null || accessToken.isEmpty()) throw new IllegalStateException("La compañía no está vinculada a Mercado Pago");
+        if (company.getMpTokenExpiration() < Instant.now().getEpochSecond() + 60) accessToken = refreshAccessToken(company);
+
+        Map<String, Object> item = Map.of(
+                "title", "Factuara de " + company.getCompanyName(),
+                "quantity", 1,
+                "unit_price", amount
+        );
+
+        Map<String, Object> preference = Map.of(
+                "items", List.of(item)
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(preference, headers);
+
+        ResponseEntity<JsonNode> response = restTemplate.postForEntity(
+                "https://api.mercadopago.com/checkout/preferences",
+                entity,
+                JsonNode.class
+        );
+
+        if (!response.getStatusCode().is2xxSuccessful()) throw new BadGatewayException(ErrorMessages.QR.getMessage());
+        JsonNode body = response.getBody();
+        if (body == null || !body.has("init_point")) throw new BadGatewayException(ErrorMessages.QR.getMessage());
+        return body.get("init_point").asText();
+    }
+
+    private String refreshAccessToken(Company company){
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "refresh_token");
+        form.add("client_id", clientId);
+        form.add("client_secret", clientSecret);
+        form.add("refresh_token", company.getMpRefreshToken());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(form, headers);
+
+        ResponseEntity<JsonNode> response = restTemplate.postForEntity(
+                "https://api.mercadopago.com/oauth/token",
+                request,
+                JsonNode.class
+        );
+
+        if (!response.getStatusCode().is2xxSuccessful()) throw new BadGatewayException(ErrorMessages.QR.getMessage());
+        JsonNode json = response.getBody();
+
+        if (json == null ||
+                !json.has("access_token") ||
+                !json.has("refresh_token") ||
+                !json.has("expires_in")) throw new BadGatewayException(ErrorMessages.QR.getMessage());
+
+
+        String newAccessToken = json.get("access_token").asText();
+        String newRefreshToken = json.get("refresh_token").asText();
+        long expiresIn = json.get("expires_in").asLong();
+
+        company.setMpAccessToken(newAccessToken);
+        company.setMpRefreshToken(newRefreshToken);
+        company.setMpTokenExpiration(Instant.now().plusSeconds(expiresIn).getEpochSecond());
+
+        Company saved = companyRepository.save(company);
+        return saved.getMpAccessToken();
+    }
+
 
 }

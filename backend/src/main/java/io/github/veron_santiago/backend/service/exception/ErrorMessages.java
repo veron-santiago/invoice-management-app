@@ -25,8 +25,8 @@ public enum ErrorMessages {
     EMAIL_ALREADY_IN_USE("El email ya se encuentra en uso"),
     PDF_GENERATE_ERROR("No se pudo generar el PDF. Intente nuevamente más tarde."),
     PRODUCT_NAME_ALREADY_EXISTS("Ya existe un producto con ese nombre"),
-    PRODUCT_CODE_ALREADY_EXISTS("Ya existe un producto con ese código");
-
+    PRODUCT_CODE_ALREADY_EXISTS("Ya existe un producto con ese código"),
+    QR("Error al generar el QR de pago");
 
 
 

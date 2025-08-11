@@ -1,8 +1,13 @@
 package io.github.veron_santiago.backend.presentation.controller;
 
+import io.github.veron_santiago.backend.persistence.entity.Company;
+import io.github.veron_santiago.backend.service.implementation.QrCodeService;
 import io.github.veron_santiago.backend.service.interfaces.IMercadoPagoService;
+import io.github.veron_santiago.backend.util.AuthUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/mp")
@@ -17,7 +23,7 @@ public class MercadoPagoController {
 
     private final IMercadoPagoService mercadoPagoService;
 
-    public MercadoPagoController(IMercadoPagoService mercadoPagoService) {
+    public MercadoPagoController(IMercadoPagoService mercadoPagoService, AuthUtil authUtil, QrCodeService codeService) {
         this.mercadoPagoService = mercadoPagoService;
     }
 
@@ -51,5 +57,6 @@ public class MercadoPagoController {
         response.getWriter().write(html);
 
     }
+
 
 }

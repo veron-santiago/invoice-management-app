@@ -29,6 +29,7 @@ export default function BillGeneratorPage() {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [sendEmail, setSendEmail] = useState(false);
+  const [includeQr, setIncludeQr] = useState(false);
   const [items, setItems] = useState([{ product: "", code: "", price: "", quantity: "" }]);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -44,7 +45,6 @@ export default function BillGeneratorPage() {
   const [serviceError, setServiceError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Auto-dismiss alerts after 5 seconds
   useEffect(() => {
     if (Object.keys(fieldErrors).length > 0) {
       const timer = setTimeout(() => {
@@ -78,6 +78,7 @@ export default function BillGeneratorPage() {
     setAddress("");
     setSendEmail(false);
     setItems([{ product: "", code: "", price: "", quantity: "" }]);
+    setIncludeQr(false);
   };
 
   const handleNameKeyDown = (e) => {
@@ -147,7 +148,6 @@ export default function BillGeneratorPage() {
   const handleConfirmGenerate = () => {
     setConfirmDialogOpen(false);
     
-    // Clear previous errors and success messages
     setFieldErrors({});
     setServiceError("");
     setSuccessMessage("");
@@ -183,7 +183,7 @@ export default function BillGeneratorPage() {
       customerAddress: address,
       billLineRequests: formattedItems,
       sendEmail: sendEmail,
-      includeQr: false
+      includeQr: includeQr
     };
   
     fetch("http://localhost:8080/bills", {
@@ -199,17 +199,13 @@ export default function BillGeneratorPage() {
         const e = await response.json();
         console.log(e);
         
-        // Handle different types of errors
         const newFieldErrors = {};
         let newServiceError = "";
         
-        // Check if it's a service error (has message property)
         if (e.message) {
           newServiceError = e.message;
         } else {
-          // Handle field validation errors
           
-          // Check customer field errors
           if (e.customerName) {
             newFieldErrors.customerName = e.customerName;
           }
@@ -220,19 +216,16 @@ export default function BillGeneratorPage() {
             newFieldErrors.customerAddress = e.customerAddress;
           }
           
-          // Check bill line errors
           const billLineError = searchErrorInBillLines(e);
           if (billLineError) {
             const { error, index, field } = billLineError;
             newFieldErrors[`billLine_${index}_${field}`] = error;
           }
           
-          // Check general billLineRequests error (like min/max size)
           if (e.billLineRequests && typeof e.billLineRequests === 'string') {
             newServiceError = e.billLineRequests;
           }
           
-          // If no specific field errors found but we have other errors, treat as service error
           if (Object.keys(newFieldErrors).length === 0 && !newServiceError) {
             newServiceError = "Error al generar la factura";
           }
@@ -247,7 +240,6 @@ export default function BillGeneratorPage() {
     })
     .then((data) => {
       console.log("Factura generada:", data);
-      // Show success message and reset form
       setSuccessMessage("¡Factura generada!");
       resetForm();
     })
@@ -611,7 +603,9 @@ export default function BillGeneratorPage() {
             </Box>
           ))}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "70%", mt: 2 }}>
-            <Button onClick={addItem} variant="outlined">Agregar Ítem</Button>
+            <Button onClick={addItem} variant="outlined" sx={{ mb: 2 }}>
+              Agregar Ítem
+            </Button>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>Importe Total:</Typography>
               <TextField
@@ -628,6 +622,19 @@ export default function BillGeneratorPage() {
               />
 
             </Box>
+          </Box>
+          <Box sx={{ display: "flex", justifyContent: "flex-start", width: "70%", mt: 1 }}>
+            <FormControlLabel 
+              control={
+                <Checkbox 
+                  checked={includeQr} 
+                  onChange={() => setIncludeQr(!includeQr)} 
+                  size="small" 
+                />
+              } 
+              label="Incluir QR de pago" 
+              sx={{ mb: 2 }}
+            />
           </Box>
           
           {serviceError && (

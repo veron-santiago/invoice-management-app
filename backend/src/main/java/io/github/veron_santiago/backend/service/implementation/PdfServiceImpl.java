@@ -4,6 +4,7 @@ import io.github.veron_santiago.backend.persistence.entity.Bill;
 import io.github.veron_santiago.backend.persistence.entity.BillLine;
 import io.github.veron_santiago.backend.persistence.repository.IBillRepository;
 import io.github.veron_santiago.backend.service.exception.ErrorMessages;
+import io.github.veron_santiago.backend.service.exception.InternalServerException;
 import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
 import io.github.veron_santiago.backend.service.interfaces.ICompanyService;
 import io.github.veron_santiago.backend.service.interfaces.IPdfService;
@@ -61,7 +62,7 @@ public class PdfServiceImpl implements IPdfService {
     }
 
     @Override
-    public String generateBillPdf(Bill bill, HttpServletRequest request, boolean includeQr) throws IOException {
+    public String generateBillPdf(Bill bill, HttpServletRequest request, boolean includeQr, byte[] qrBytes) throws IOException {
         try (PDDocument template = getTemplate()) {
             PDDocumentCatalog catalog = template.getDocumentCatalog();
             PDAcroForm form = catalog.getAcroForm();
@@ -103,36 +104,15 @@ public class PdfServiceImpl implements IPdfService {
                 try (InputStream in = logo.getInputStream()) {
                     BufferedImage buffered = ImageIO.read(in);
                     PDImageXObject pdImage = LosslessFactory.createFromImage(template, buffered);
-
-                    PDPushButton logoButton = (PDPushButton) form.getField("logo_af_image");
-                    List<PDAnnotationWidget> widgets = logoButton.getWidgets();
-                    if (widgets != null && !widgets.isEmpty()) {
-                        PDAnnotationWidget widget = widgets.getFirst();
-                        PDRectangle rect = widget.getRectangle();
-
-                        float height = rect.getHeight();
-                        float ratio = (float) pdImage.getHeight() / pdImage.getWidth();
-                        float width = height / ratio;
-
-                        PDAppearanceStream apStream = new PDAppearanceStream(template);
-                        PDResources rs = new PDResources();
-                        apStream.setResources(rs);
-                        rs.add(pdImage);
-                        apStream.setBBox(new PDRectangle(0, 0, width, height));
-
-                        try (PDPageContentStream cs = new PDPageContentStream(template, apStream)) {
-                            cs.drawImage(pdImage, 0, 0, width, height);
-                        }
-
-                        PDAppearanceDictionary apDict = widget.getAppearance();
-                        if (apDict == null) {
-                            apDict = new PDAppearanceDictionary();
-                            widget.setAppearance(apDict);
-                        }
-                        apDict.setNormalAppearance(apStream);
-                    }
+                    setImageInAcroButton(template, pdImage, form, "logo_af_image", true);
                 }
             }
+
+            if (includeQr && qrBytes != null) {
+                PDImageXObject qrImage = PDImageXObject.createFromByteArray(template, qrBytes, "qr-code");
+                setImageInAcroButton(template, qrImage, form, "qr_af_image", false);
+            }
+
 
             form.getField("companyNameTittle").setValue(bill.getCompanyName());
             form.getField("billNumber").setValue(billNumber);
@@ -193,6 +173,7 @@ public class PdfServiceImpl implements IPdfService {
         if (address != null && !address.isEmpty()) sb.append(address);
         return sb.toString();
     }
+
     private String getCustomerInfo(Bill bill){
         StringBuilder sb = new StringBuilder();
         String email = bill.getCustomerEmail();
@@ -234,6 +215,38 @@ public class PdfServiceImpl implements IPdfService {
     };
     private String formatAmount(BigDecimal amount) {
         return String.format(Locale.US, "%.2f", amount);
+    }
+    private void setImageInAcroButton(PDDocument template, PDImageXObject image, PDAcroForm form, String field, boolean isPdf){
+        PDPushButton button = (PDPushButton) form.getField(field);
+        List<PDAnnotationWidget> widgets = button.getWidgets();
+
+        if (widgets != null && !widgets.isEmpty()) {
+            PDAnnotationWidget widget = widgets.getFirst();
+            PDRectangle rect = widget.getRectangle();
+
+            float height = rect.getHeight();
+            float width = isPdf ? height / ((float) image.getHeight() / image.getWidth()) : rect.getWidth();
+
+            PDAppearanceStream apStream = new PDAppearanceStream(template);
+            PDResources rs = new PDResources();
+            apStream.setResources(rs);
+            rs.add(image);
+            apStream.setBBox(new PDRectangle(0, 0, width, height));
+
+            try (PDPageContentStream cs = new PDPageContentStream(template, apStream)) {
+                cs.drawImage(image, 0, 0, width, height);
+            } catch (IOException e) {
+                throw new InternalServerException("Error al generar la factura");
+            }
+
+            PDAppearanceDictionary apDict = widget.getAppearance();
+            if (apDict == null) {
+                apDict = new PDAppearanceDictionary();
+                widget.setAppearance(apDict);
+            }
+            apDict.setNormalAppearance(apStream);
+        }
+
     }
 
 }

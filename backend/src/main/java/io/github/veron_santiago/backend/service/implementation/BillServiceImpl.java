@@ -9,14 +9,8 @@ import io.github.veron_santiago.backend.presentation.dto.request.BillRequest;
 import io.github.veron_santiago.backend.presentation.dto.request.CustomerRequest;
 import io.github.veron_santiago.backend.presentation.dto.response.BillDTO;
 import io.github.veron_santiago.backend.presentation.dto.response.CustomerDTO;
-import io.github.veron_santiago.backend.service.exception.ErrorMessages;
-import io.github.veron_santiago.backend.service.exception.InvalidFieldException;
-import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
-import io.github.veron_santiago.backend.service.exception.ResourceConflictException;
-import io.github.veron_santiago.backend.service.interfaces.IBillLineService;
-import io.github.veron_santiago.backend.service.interfaces.IBillService;
-import io.github.veron_santiago.backend.service.interfaces.ICustomerService;
-import io.github.veron_santiago.backend.service.interfaces.IPdfService;
+import io.github.veron_santiago.backend.service.exception.*;
+import io.github.veron_santiago.backend.service.interfaces.*;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.BillMapper;
 import io.github.veron_santiago.backend.util.mapper.CustomerMapper;
@@ -51,8 +45,10 @@ public class BillServiceImpl implements IBillService {
     private final IPdfService pdfService;
     private final JavaMailSender javaMailSender;
     private final IProductRepository productRepository;
+    private final IMercadoPagoService mercadoPagoService;
+    private final QrCodeService qrCodeService;
 
-    public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService, IPdfService pdfService, JavaMailSender javaMailSender, IProductRepository productRepository) {
+    public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService, IPdfService pdfService, JavaMailSender javaMailSender, IProductRepository productRepository, IMercadoPagoService mercadoPagoService, QrCodeService qrCodeService) {
         this.billRepository = billRepository;
         this.companyRepository = companyRepository;
         this.billMapper = billMapper;
@@ -63,6 +59,8 @@ public class BillServiceImpl implements IBillService {
         this.pdfService = pdfService;
         this.javaMailSender = javaMailSender;
         this.productRepository = productRepository;
+        this.mercadoPagoService = mercadoPagoService;
+        this.qrCodeService = qrCodeService;
     }
 
 
@@ -75,6 +73,13 @@ public class BillServiceImpl implements IBillService {
         verifyDuplicateProductOrCode(billRequest, company.getId());
 
         AtomicReference<BigDecimal> total = calculateTotal(billRequest);
+
+        byte[] qrBytes = null;
+        if (billRequest.includeQr()){
+            String paymentLink = mercadoPagoService.createPaymentLink(company, total.get());
+            qrBytes = qrCodeService.generateQrCode(paymentLink, 300, 300);
+        }
+
         Customer customer = getCustomerOrCreate(company, billRequest, request);
 
         Bill bill = Bill.builder()
@@ -98,7 +103,7 @@ public class BillServiceImpl implements IBillService {
         saved.setBillLines(new ArrayList<>(billLines));
         saved = billRepository.save(saved);
 
-        String path = pdfService.generateBillPdf(saved, request, billRequest.includeQr());
+        String path = pdfService.generateBillPdf(saved, request, billRequest.includeQr(), qrBytes);
         saved.setPdfPath(path);
         Bill finalSaved = billRepository.save(saved);
 
@@ -171,7 +176,7 @@ public class BillServiceImpl implements IBillService {
 
             javaMailSender.send(message);
         } catch (MessagingException | MailException e) {
-            throw new RuntimeException("Error al enviar el correo: " + e.getMessage(), e);
+            throw new InternalServerException("Error al enviar el correo: " + e.getMessage());
         }
     }
 

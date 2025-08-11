@@ -29,7 +29,6 @@ const CompanyInfo = ({ companyName, email, address }) => {
 
   const navigate = useNavigate()
 
-  // NUEVO ESTADO PARA POPUP LOGO
   const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
@@ -236,7 +235,6 @@ const CompanyInfo = ({ companyName, email, address }) => {
       .finally(() => setSavingPassword(false))
   }
 
-  // FUNCIONES NUEVAS PARA LOGO
   const openLogoDialog = () => {
     setIsLogoDialogOpen(true)
     setSelectedFile(null)
@@ -326,7 +324,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
       const url = await resp.text();
       popup.location.href = url;
     } catch (e) {
-      setMpMessage('Error al conectar Mercado Pago');
+      setMpMessage('Error al vincular Mercado Pago');
       setTimeout(() => setMpMessage(''), 5000);
       popup.close();
       window.removeEventListener('message', messageHandler);
