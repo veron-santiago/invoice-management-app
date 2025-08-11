@@ -36,6 +36,23 @@ public class JwtUtil {
         this.companyRepository = companyRepository;
     }
 
+    public String generateState(Long companyId, String secret) {
+        Algorithm algorithm = Algorithm.HMAC256(secret);
+        return JWT.create()
+                .withJWTId(UUID.randomUUID().toString())
+                .withSubject(companyId.toString())
+                .withIssuedAt(new Date())
+                .withExpiresAt(new Date(System.currentTimeMillis() + 5 * 60 * 1000))
+                .sign(algorithm);
+    }
+
+    public Long validateState(String state, String secret) {
+        Algorithm algorithm = Algorithm.HMAC256(secret);
+        JWTVerifier verifier = JWT.require(algorithm).build();
+        DecodedJWT decodedJWT = verifier.verify(state);
+        return Long.valueOf(decodedJWT.getSubject());
+    }
+
     public String createToken(Authentication authentication, boolean rememberMe){
         Algorithm algorithm = Algorithm.HMAC256(privateKey);
         String  companyName = authentication.getPrincipal().toString();

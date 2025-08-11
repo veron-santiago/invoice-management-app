@@ -67,4 +67,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    @ExceptionHandler(BadGatewayException.class)
+    public ResponseEntity<Map<String, Object>> handleBadGateway(BadGatewayException e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", e.getMessage());
+        body.put("status", HttpStatus.BAD_GATEWAY.value());
+        return new ResponseEntity<>(body, HttpStatus.BAD_GATEWAY);
+    }
+
 }

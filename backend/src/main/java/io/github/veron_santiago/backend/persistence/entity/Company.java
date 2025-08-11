@@ -47,6 +47,8 @@ public class Company {
     private String mpAccessToken;
     @Column(name = "mp_refresh_token")
     private String mpRefreshToken;
+    @Column(name = "mp_expires_in")
+    private Long mpTokenExpiration;
 
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("billNumber DESC")

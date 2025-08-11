@@ -29,6 +29,9 @@ public interface CompanyMapper {
     @Mapping(target = "bills", ignore = true)
     @Mapping(target = "customers", ignore = true)
     @Mapping(target = "products", ignore = true)
+    @Mapping(target = "mpAccessToken", ignore = true)
+    @Mapping(target = "mpRefreshToken", ignore = true)
+    @Mapping(target = "mpTokenExpiration", ignore = true)
     Company companyDTOToCompany(CompanyDTO companyDTO,
                                 @MappingTarget Company company,
                                 @Context IBillRepository billRepository,

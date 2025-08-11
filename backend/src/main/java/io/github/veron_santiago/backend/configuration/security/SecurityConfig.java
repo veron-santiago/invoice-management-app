@@ -48,7 +48,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/auth/**", "/mp/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtTokenValidator(jwtUtil, userDetailsService), BasicAuthenticationFilter.class)
@@ -71,7 +71,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOrigins(List.of("http://localhost:5173"));
+        c.setAllowedOrigins(List.of("http://localhost:3000","http://localhost:5173","https://d34fb2fe21ff.ngrok-free.app"));
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
         c.setExposedHeaders(List.of("Authorization"));

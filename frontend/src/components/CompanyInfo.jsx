@@ -25,6 +25,8 @@ const CompanyInfo = ({ companyName, email, address }) => {
   const [newPassword, setNewPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
+  const [mpMessage, setMpMessage] = useState('');
+
   const navigate = useNavigate()
 
   // NUEVO ESTADO PARA POPUP LOGO
@@ -32,6 +34,8 @@ const CompanyInfo = ({ companyName, email, address }) => {
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
   const [filePath, setFilePath] = useState('')
+
+
 
   const handleLogout = () => {
     const confirmLogout = window.confirm('¿Está seguro de que desea cerrar sesión?')
@@ -272,9 +276,12 @@ const CompanyInfo = ({ companyName, email, address }) => {
 
   const handleUploadLogo = () => {
     if (!selectedFile) return
-    const token = localStorage.getItem('token')
+
     const formData = new FormData()
-    formData.append('file', selectedFile)
+    formData.append('logo', selectedFile)
+
+    const token = localStorage.getItem('token')
+
     fetch('http://localhost:8080/companies/logo', {
       method: 'POST',
       headers: {
@@ -282,13 +289,51 @@ const CompanyInfo = ({ companyName, email, address }) => {
       },
       body: formData
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Error al subir logo')
+      .then(() => {
         closeLogoDialog()
-        setTimeout(() => window.location.reload(), 1500)
+        window.location.reload()
       })
-      .catch(() => alert('Error al subir la imagen'))
+      .catch(err => {
+        console.error('Error uploading logo:', err)
+      })
   }
+
+  const handleConnectMercadoPago = async () => {
+    const popup = window.open('', 'MercadoPagoAuth', 'width=600,height=700');
+
+    const messageHandler = (event) => {
+      if (event.data?.mpLinked) {
+        setMpMessage('Cuenta vinculada correctamente');
+        setTimeout(() => setMpMessage(''), 5000);
+        popup.close();
+        window.removeEventListener('message', messageHandler);
+      } else if (event.data?.mpError) {
+        setMpMessage('Error al vincular: ' + event.data.mpError);
+        setTimeout(() => setMpMessage(''), 5000);
+        popup.close();
+        window.removeEventListener('message', messageHandler);
+      }
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    try {
+      const token = localStorage.getItem('token');
+      const resp = await fetch('http://localhost:8080/mp/connect', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!resp.ok) throw new Error('No se pudo obtener la URL de Mercado Pago');
+      const url = await resp.text();
+      popup.location.href = url;
+    } catch (e) {
+      setMpMessage('Error al conectar Mercado Pago');
+      setTimeout(() => setMpMessage(''), 5000);
+      popup.close();
+      window.removeEventListener('message', messageHandler);
+    }
+  };
+  
+  
 
   return (
     <Box mt={3}>
@@ -406,6 +451,37 @@ const CompanyInfo = ({ companyName, email, address }) => {
         >
           <Button variant="outlined" onClick={openPasswordDialog}>Cambiar Contraseña</Button>
           <Button variant="outlined" onClick={openLogoDialog}>Cambiar Logo</Button>
+          <Box sx={{ position: 'relative', display: 'inline-block' }}>
+            <Button 
+              variant="outlined" 
+              onClick={handleConnectMercadoPago}
+            >
+              Vincular Mercado Pago
+            </Button>
+            {mpMessage && (
+              <Box 
+                sx={{ 
+                  position: 'absolute',
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  mt: 1,
+                  zIndex: 1000,
+                  width: '400px',
+                  display: 'flex',
+                  justifyContent: 'center'
+                }}
+              >
+                <Alert 
+                  severity={mpMessage.startsWith('Error') ? 'error' : 'success'} 
+                  onClose={() => setMpMessage('')} 
+                  sx={{ maxWidth: 600 }}
+                >
+                  {mpMessage}
+                </Alert>
+              </Box>
+            )}
+          </Box>
           <Button
             onClick={handleLogout}
             sx={{
