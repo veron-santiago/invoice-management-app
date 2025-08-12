@@ -214,9 +214,9 @@ export default function BillGeneratorPage() {
     
 
     const payload = {
-      customerName: name,
-      customerEmail: email,
-      customerAddress: address,
+      customerName: name.trim() === "" ? null : name.trim(),
+      customerEmail: email.trim() === "" ? null : email.trim(),
+      customerAddress: address.trim() === "" ? null : address.trim(),
       billLineRequests: formattedItems,
       sendEmail: sendEmail,
       includeQr: includeQr

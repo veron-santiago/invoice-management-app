@@ -1,6 +1,7 @@
-import { TextField, Button, Box, Checkbox, FormControlLabel, Alert, Typography, Link } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { TextField, Button, Box, Checkbox, FormControlLabel, Alert, Typography, Link, InputAdornment, IconButton } from '@mui/material'
+import { Visibility, VisibilityOff } from '@mui/icons-material'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 
 const LoginForm = () => {
   const [username, setUsername] = useState('')
@@ -8,18 +9,44 @@ const LoginForm = () => {
   const [stayLogged, setStayLogged] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    const message = searchParams.get('message')
+    const verified = searchParams.get('verified')
+    
+    if (message && verified !== null) {
+      const decodedMessage = decodeURIComponent(message)
+      
+      if (verified === 'true') {
+        setSuccess(decodedMessage)
+        setTimeout(() => setSuccess(''), 5000)
+      } else {
+        setError(decodedMessage)
+        setTimeout(() => setError(''), 5000)
+      }
+      
+      const newSearchParams = new URLSearchParams(searchParams)
+      newSearchParams.delete('message')
+      newSearchParams.delete('verified')
+      setSearchParams(newSearchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
+
+    const handleSubmit = async (e) => {
     e.preventDefault()
+    setIsSubmitting(true)
     try {
       const response = await fetch('http://localhost:8080/auth/log-in', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ companyName: username, password, stayLogged }),
+        body: JSON.stringify({ companyName: username || null, password: password || null, stayLogged }),
       })
       const data = await response.json()
 
@@ -40,11 +67,16 @@ const LoginForm = () => {
     } catch (error) {
       setError('Ha ocurrido un error')
       setTimeout(() => setError(''), 3000)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
+      <Typography variant="h4" component="h1" align="center" sx={{ mb: 3, fontWeight: 'bold' }}>
+        Inicio de Sesión
+      </Typography>
       <TextField
         label="Nombre de la compañía o Email"
         fullWidth
@@ -54,11 +86,24 @@ const LoginForm = () => {
       />
       <TextField
         label="Contraseña"
-        type="password"
+        type={showPassword ? 'text' : 'password'}
         fullWidth
         margin="normal"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="toggle password visibility"
+                onClick={() => setShowPassword(!showPassword)}
+                edge="end"
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
       <Box
         sx={{
@@ -79,7 +124,7 @@ const LoginForm = () => {
           }
           label="Recuérdame"
         />
-        <Button type="submit" variant="contained">
+                <Button type="submit" variant="contained" disabled={isSubmitting}>
           Enviar
         </Button>
       </Box>

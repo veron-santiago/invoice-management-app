@@ -10,6 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @RestController
 @RequestMapping("/auth")
 public class  AuthenticationController {
@@ -37,10 +41,14 @@ public class  AuthenticationController {
     }
 
     @GetMapping("/verify")
-    public ResponseEntity<String> verifyEmail(@RequestParam("token") String token){
+    public ResponseEntity<Void> verifyEmail(@RequestParam("token") String token) {
         boolean verified = companyService.verifyEmail(token);
-        if (verified) return ResponseEntity.ok("El correo electrónico se ha verificado correctamente");
-        else return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Ha ocurrido un error al verificar el correo electrónico");
+        String message = verified ? "Correo verificado con éxito" : "No se pudo verificar el correo";
+        String encodedMessage = URLEncoder.encode(message, StandardCharsets.UTF_8);
+        return ResponseEntity.status(HttpStatus.SEE_OTHER)
+                .location(URI.create("http://localhost:5173/login?message=" + encodedMessage + "&verified=" + verified))
+                .build();
     }
+
 
 }
