@@ -37,8 +37,11 @@ public class BillController {
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> getPdfById(@PathVariable Long id, HttpServletRequest request) throws AccessDeniedException {
         byte[] pdf = pdfService.getPdfByBillId(id, request);
+        Long billNumber = billRepository.getBillNumberById(id);
+        int times = 8 - String.valueOf(billNumber).length();
+        String name = "0".repeat(times) + billNumber;
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=bill-" + id + ".pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + name + ".pdf")
                 .body(pdf);
     }
 

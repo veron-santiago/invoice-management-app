@@ -151,7 +151,7 @@ public class BillServiceImpl implements IBillService {
                 throw new InvalidFieldException(ErrorMessages.DUPLICATE_CODE_IN_BILL.getMessage());
             }
             Product product = productRepository.findByCodeAndCompanyId(code, companyId).orElse(null);
-            if (product != null && !product.getName().equalsIgnoreCase(name)){
+            if (code != null && product != null && !product.getName().equalsIgnoreCase(name)){
                 throw new ResourceConflictException("El código " + code + " ya está en uso.\nAsignado a: " + product.getName());
             }
         }
