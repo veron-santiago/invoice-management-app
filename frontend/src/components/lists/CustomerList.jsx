@@ -258,6 +258,7 @@ const CustomerList = () => {
         console.error(err)
         setCreateError(err.message)
         setCreateSuccess('')
+        setTimeout(() => setCreateError(''), 5000)
       })
   }
 

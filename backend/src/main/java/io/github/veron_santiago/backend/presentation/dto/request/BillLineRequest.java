@@ -13,10 +13,10 @@ public record BillLineRequest (
                                        message = "El nombre contiene caracteres inválidos")
                                String name,
 
-                               @Size(max = 8, message = "El código no puede tener más de 8 caracteres")
+                               @Size(max = 6, message = "El código no puede tener más de 6 caracteres")
                                @Pattern(
-                                       regexp = "^[a-zA-Z0-9_.-]*$",
-                                       message = "El código contiene caracteres inválidos")
+                                       regexp = "^[a-zA-Z0-9]*$",
+                                       message = "El código solo puede contener números y letras")
                                String code,
 
                                @NotNull(message = "La cantidad es obligatoria")

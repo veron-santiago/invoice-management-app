@@ -69,7 +69,6 @@ public class BillServiceImpl implements IBillService {
 
         Company company = getCompany(request);
 
-        verifyEmptyCustomerName(billRequest);
         verifyDuplicateProductOrCode(billRequest, company.getId());
 
         AtomicReference<BigDecimal> total = calculateTotal(billRequest);
@@ -77,7 +76,7 @@ public class BillServiceImpl implements IBillService {
         byte[] qrBytes = null;
         if (billRequest.includeQr()){
             String paymentLink = mercadoPagoService.createPaymentLink(company, total.get());
-            qrBytes = qrCodeService.generateQrCode(paymentLink, 300, 300);
+            qrBytes = qrCodeService.generateQrCode(paymentLink, 200, 200);
         }
 
         Customer customer = getCustomerOrCreate(company, billRequest, request);
@@ -157,11 +156,6 @@ public class BillServiceImpl implements IBillService {
             }
         }
     }
-    private void verifyEmptyCustomerName(BillRequest billRequest){
-        if (billRequest.customerName() == null || billRequest.customerName().isBlank()) {
-            throw new InvalidFieldException(ErrorMessages.CUSTOMER_NAME_IS_EMPTY.getMessage());
-        }
-    }
     private void sendPdfToEmail(String email, byte[] pdf, String companyName, Long billId){
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
@@ -179,7 +173,6 @@ public class BillServiceImpl implements IBillService {
             throw new InternalServerException("Error al enviar el correo: " + e.getMessage());
         }
     }
-
     private AtomicReference<BigDecimal> calculateTotal(BillRequest billRequest){
         AtomicReference<BigDecimal> total = new AtomicReference<>(BigDecimal.ZERO);
         billRequest.billLineRequests()
@@ -194,9 +187,15 @@ public class BillServiceImpl implements IBillService {
                 .filter(c -> c.getName().equalsIgnoreCase(billRequest.customerName()))
                 .findFirst()
                 .orElseGet(() -> {
-                    CustomerDTO dto = customerService.createCustomer(
-                            new CustomerRequest(billRequest.customerName(), company.getAddress(), billRequest.customerEmail()), request);
-                    return customerMapper.customerDTOToCustomer(dto, new Customer(), companyRepository, billRepository);
+                    CustomerRequest cReq = new CustomerRequest(
+                            billRequest.customerName(),
+                            billRequest.customerAddress(),
+                            billRequest.customerEmail()
+                    );
+                    CustomerDTO saved = customerService.createCustomer(cReq, request);
+                    return customerMapper.customerDTOToCustomer(
+                            saved, new Customer(), companyRepository, billRepository
+                    );
                 });
     }
     private List<BillLine> createBillLines(BillRequest billRequest, Bill bill, HttpServletRequest request){
