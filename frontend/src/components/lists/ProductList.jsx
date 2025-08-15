@@ -47,11 +47,12 @@ const ProductList = () => {
   const [createForm, setCreateForm] = useState({ name: '', code: '', price: '' })
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const token = localStorage.getItem('token')
 
-    fetch('http://localhost:8080/products', {
+    fetch(`${API_URL}/products`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -104,7 +105,7 @@ const ProductList = () => {
 
   const confirmDelete = () => {
     const token = localStorage.getItem('token')
-    fetch(`http://localhost:8080/products/${productToDelete.id}`, {
+    fetch(`${API_URL}/products/${productToDelete.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -148,7 +149,7 @@ const ProductList = () => {
     
     console.log('Sending product update data:', updateData)
 
-    fetch(`http://localhost:8080/products/${editingProduct}`, {
+    fetch(`${API_URL}/products/${editingProduct}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -227,7 +228,7 @@ const ProductList = () => {
       return
     }
 
-    fetch('http://localhost:8080/products', {
+    fetch(`${API_URL}/products`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

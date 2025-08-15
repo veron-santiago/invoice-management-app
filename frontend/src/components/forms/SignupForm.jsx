@@ -10,12 +10,13 @@ const SignupForm = () => {
     const [success, setSuccess] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const API_URL = import.meta.env.VITE_API_URL;
 
         const handleSubmit = async (e) => {
         e.preventDefault()
         setIsSubmitting(true)
         try {
-            const response = await fetch('http://localhost:8080/auth/sign-up', {
+            const response = await fetch(`${API_URL}/auth/sign-up`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ companyName: username || null, email: email || null, password: password || null })

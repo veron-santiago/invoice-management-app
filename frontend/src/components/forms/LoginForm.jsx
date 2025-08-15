@@ -11,6 +11,7 @@ const LoginForm = () => {
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -41,7 +42,7 @@ const LoginForm = () => {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      const response = await fetch('http://localhost:8080/auth/log-in', {
+      const response = await fetch(`${API_URL}/auth/log-in`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

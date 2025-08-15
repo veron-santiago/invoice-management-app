@@ -6,6 +6,7 @@ import io.github.veron_santiago.backend.persistence.repository.ICompanyRepositor
 import io.github.veron_santiago.backend.service.exception.BadGatewayException;
 import io.github.veron_santiago.backend.service.exception.ErrorMessages;
 import io.github.veron_santiago.backend.service.exception.InvalidFieldException;
+import io.github.veron_santiago.backend.service.exception.UnprocessableEntity;
 import io.github.veron_santiago.backend.service.interfaces.IMercadoPagoService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.JwtUtil;
@@ -33,7 +34,7 @@ public class MercadoPagoServiceImpl implements IMercadoPagoService {
 
     @Value("${mp_client_id}") private String clientId;
     @Value("${mp_client_secret}") private String clientSecret;
-    @Value("${mp_redirect_uri}") private String redirectUri;
+    @Value("${app.mp.redirect-uri}") private String redirectUri;
     @Value("${security.jwt.private-key}") private String privateKey;
 
     private final ICompanyRepository companyRepository;
@@ -117,7 +118,7 @@ public class MercadoPagoServiceImpl implements IMercadoPagoService {
     @Override
     public String createPaymentLink(Company company, BigDecimal amount) {
         String accessToken = company.getMpAccessToken();
-        if (accessToken == null || accessToken.isEmpty()) throw new IllegalStateException("La compañía no está vinculada a Mercado Pago");
+        if (accessToken == null || accessToken.isEmpty()) throw new UnprocessableEntity("La compañía no está vinculada a Mercado Pago");
         if (company.getMpTokenExpiration() < Instant.now().getEpochSecond() + 60) accessToken = refreshAccessToken(company);
 
         Map<String, Object> item = Map.of(

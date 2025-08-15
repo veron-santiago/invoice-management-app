@@ -40,6 +40,7 @@ export default function BillGeneratorPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showError, setShowError] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const nameRef = useRef();
   const emailRef = useRef();
@@ -70,11 +71,11 @@ export default function BillGeneratorPage() {
         }
     };
 
-    fetch("http://localhost:8080/customers", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/customers`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => res.json())
       .then((data) => setCustomers(data));
 
-    fetch("http://localhost:8080/products", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/products`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => res.json())
       .then((data) => setProducts(data));
 
@@ -222,7 +223,7 @@ export default function BillGeneratorPage() {
       includeQr: includeQr
     };
   
-    fetch("http://localhost:8080/bills", {
+    fetch(`${API_URL}/bills`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -358,11 +359,11 @@ export default function BillGeneratorPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("http://localhost:8080/customers", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/customers`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then(setCustomers)
       .catch(() => {});
-    fetch("http://localhost:8080/products", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/products`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then(setProducts)
       .catch(() => {});

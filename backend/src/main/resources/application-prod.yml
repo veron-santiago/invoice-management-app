@@ -1,0 +1,6 @@
+app:
+  cors:
+    allowed-origins:
+      - https://invoice-management-frontend-7ut4.onrender.com
+  mp:
+    redirect-uri: https://invoice-management-app-3g3w.onrender.com/mp/callback

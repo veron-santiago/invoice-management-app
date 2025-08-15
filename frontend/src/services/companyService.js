@@ -1,7 +1,7 @@
-const BASE_URL = 'http://localhost:8080';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const hasAccessToken = async (token) => {
-    const response = await fetch(`${BASE_URL}/companies/access-token`, {
+    const response = await fetch(`${API_URL}/companies/access-token`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -13,7 +13,7 @@ export const hasAccessToken = async (token) => {
 };
 
 export const getMercadoPagoConnection = async (token) => {
-    const response = await fetch(`${BASE_URL}/mp/connect`, {
+    const response = await fetch(`${API_URL}/mp/connect`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }

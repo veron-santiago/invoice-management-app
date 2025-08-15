@@ -32,6 +32,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
   const [countdown, setCountdown] = useState(10)
   const [deletingCompany, setDeletingCompany] = useState(false)
   const [countdownTimer, setCountdownTimer] = useState(null)
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const navigate = useNavigate()
 
@@ -82,7 +83,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     setDeletingCompany(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8080/companies', {
+      const response = await fetch(`${API_URL}/companies`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -149,7 +150,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const updateData = { name: nameForm.trim() }
 
-    fetch('http://localhost:8080/companies/name', {
+    fetch(`${API_URL}/companies/name`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -184,7 +185,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const updateData = { email: emailForm.trim() === '' ? null : emailForm.trim() }
 
-    fetch('http://localhost:8080/companies/email', {
+    fetch(`${API_URL}/companies/email`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -232,7 +233,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const updateData = { address: addressForm.trim() === '' ? null : addressForm.trim() }
 
-    fetch('http://localhost:8080/companies/address', {
+    fetch(`${API_URL}/companies/address`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -280,7 +281,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const data = { actualPassword, newPassword }
 
-    fetch('http://localhost:8080/companies/password', {
+    fetch(`${API_URL}/companies/password`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -355,7 +356,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
 
     const token = localStorage.getItem('token')
 
-    fetch('http://localhost:8080/companies/logo', {
+    fetch(`${API_URL}/companies/logo`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`

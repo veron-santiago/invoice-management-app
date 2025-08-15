@@ -6,9 +6,10 @@ import { Link, useLocation } from 'react-router-dom'
 export default function SidebarMenu() {
   const location = useLocation()
   const [showMPButton, setShowMPButton] = useState(false)
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    fetch('http://localhost:8080/companies', { 
+    fetch(`${API_URL}/companies`, { 
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       } 

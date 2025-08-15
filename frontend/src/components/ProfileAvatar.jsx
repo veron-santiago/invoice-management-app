@@ -4,13 +4,14 @@ import { Avatar, Box, Typography, CircularProgress } from '@mui/material'
 const ProfileAvatar = ({ sx = {}, textSx = {} }) => {
   const [logoUrl, setLogoUrl] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const token = localStorage.getItem('token')
     const headers = {
       Authorization: `Bearer ${token}`
     }
-    const fetchLogo = fetch('http://localhost:8080/companies/logo', { headers })
+    const fetchLogo = fetch(`${API_URL}/companies/logo`, { headers })
       .then(res => {
         if (res.ok) {
           return res.blob()
