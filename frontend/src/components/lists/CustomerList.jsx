@@ -47,11 +47,12 @@ const CustomerList = () => {
   const [createForm, setCreateForm] = useState({ name: '', email: '', address: '' })
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const token = localStorage.getItem('token')
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/customers', {
+    fetch(`${API_URL}/customers`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -102,7 +103,7 @@ const CustomerList = () => {
 
   const confirmDelete = () => {
     const token = localStorage.getItem('token')
-    fetch(`https://invoice-management-app-3g3w.onrender.com/customers/${customerToDelete.id}`, {
+    fetch(`${API_URL}/customers/${customerToDelete.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -138,16 +139,15 @@ const CustomerList = () => {
   const handleSaveEdit = () => {
     const token = localStorage.getItem('token')
     
-    // Prepare update data with proper handling of optional fields
     const updateData = {
-      name: editForm.name.trim() === '' ? '' : editForm.name.trim(), // Required field
-      email: editForm.email.trim() === '' ? null : editForm.email.trim(), // Send empty string for optional field
-      address: editForm.address.trim() === '' ? null : editForm.address.trim() // Send empty string for optional field
+      name: editForm.name.trim() === '' ? '' : editForm.name.trim(), 
+      email: editForm.email.trim() === '' ? null : editForm.email.trim(), 
+      address: editForm.address.trim() === '' ? null : editForm.address.trim() 
     }
     
-    console.log('Sending update data:', updateData) // Debug log
+    console.log('Sending update data:', updateData)
 
-    fetch(`https://invoice-management-app-3g3w.onrender.com/customers/${editingCustomer}`, {
+    fetch(`${API_URL}/customers/${editingCustomer}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -158,7 +158,6 @@ const CustomerList = () => {
       .then(res => {
         if (!res.ok) {
           return res.json().then(err => {
-            // Handle validation errors from backend
             if (err.errors && Array.isArray(err.errors)) {
               throw new Error(err.errors.join(', '))
             }
@@ -168,7 +167,7 @@ const CustomerList = () => {
         return res.json()
       })
       .then(updatedCustomer => {
-        console.log('Received updated customer:', updatedCustomer) // Debug log
+        console.log('Received updated customer:', updatedCustomer)
         setCustomers(customers.map(c => 
           c.id === editingCustomer ? updatedCustomer : c
         ))
@@ -220,13 +219,12 @@ const CustomerList = () => {
       address: createForm.address.trim() === '' ? null : createForm.address.trim()
     }
 
-    // Validate required fields
     if (!createData.name) {
       setCreateError('El nombre del cliente es obligatorio')
       return
     }
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/customers', {
+    fetch(`${API_URL}/customers`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -237,7 +235,6 @@ const CustomerList = () => {
       .then(res => {
         if (!res.ok) {
           return res.json().then(err => {
-            // Handle validation errors from backend
             if (err.errors && Array.isArray(err.errors)) {
               throw new Error(err.errors.join(', '))
             }
@@ -251,13 +248,13 @@ const CustomerList = () => {
         setCreateForm({ name: '', email: '', address: '' })
         setCreateError('')
         setCreateSuccess('Cliente creado con éxito')
-        // Clear success message after 3 seconds
         setTimeout(() => setCreateSuccess(''), 3000)
       })
       .catch(err => {
         console.error(err)
         setCreateError(err.message)
         setCreateSuccess('')
+        setTimeout(() => setCreateError(''), 5000)
       })
   }
 

@@ -5,6 +5,7 @@ import SaveIcon from '@mui/icons-material/Save'
 import CancelIcon from '@mui/icons-material/Cancel'
 import ProfileAvatar from './ProfileAvatar'
 import { useNavigate } from 'react-router-dom'
+import MercadoPagoConnectButton from './MercadoPagoConnectButton'
 
 const CompanyInfo = ({ companyName, email, address }) => {
   const [hover, setHover] = useState(false)
@@ -25,13 +26,91 @@ const CompanyInfo = ({ companyName, email, address }) => {
   const [newPassword, setNewPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
+  const [mpMessage, setMpMessage] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isCountdownActive, setIsCountdownActive] = useState(false)
+  const [countdown, setCountdown] = useState(10)
+  const [deletingCompany, setDeletingCompany] = useState(false)
+  const [countdownTimer, setCountdownTimer] = useState(null)
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const navigate = useNavigate()
 
-  // NUEVO ESTADO PARA POPUP LOGO
   const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
   const [filePath, setFilePath] = useState('')
+
+  const handleDeleteCompany = () => {
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (countdownTimer) {
+      clearInterval(countdownTimer)
+    }
+    
+    setIsCountdownActive(true)
+    setCountdown(10)
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          setCountdownTimer(null)
+          executeDelete()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    
+    setCountdownTimer(timer)
+  }
+
+  const handleCancelDelete = () => {
+    if (countdownTimer) {
+      clearInterval(countdownTimer)
+      setCountdownTimer(null)
+    }
+    
+    setIsDeleteDialogOpen(false)
+    setIsCountdownActive(false)
+    setCountdown(10)
+  }
+
+  const executeDelete = async () => {
+    setDeletingCompany(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_URL}/companies`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        localStorage.removeItem('token')
+        navigate('/login')
+      } else {
+        console.error('Error deleting company')
+        setIsDeleteDialogOpen(false)
+        setIsCountdownActive(false)
+        setCountdown(10)
+      }
+    } catch (error) {
+      console.error('Error deleting company:', error)
+      setIsDeleteDialogOpen(false)
+      setIsCountdownActive(false)
+      setCountdown(10)
+    } finally {
+      setDeletingCompany(false)
+    }
+  }
+
+
 
   const handleLogout = () => {
     const confirmLogout = window.confirm('¿Está seguro de que desea cerrar sesión?')
@@ -71,7 +150,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const updateData = { name: nameForm.trim() }
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/companies/name', {
+    fetch(`${API_URL}/companies/name`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -104,9 +183,9 @@ const CompanyInfo = ({ companyName, email, address }) => {
 
   const handleSaveEmail = () => {
     const token = localStorage.getItem('token')
-    const updateData = { email: emailForm.trim() }
+    const updateData = { email: emailForm.trim() === '' ? null : emailForm.trim() }
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/companies/email', {
+    fetch(`${API_URL}/companies/email`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -152,9 +231,9 @@ const CompanyInfo = ({ companyName, email, address }) => {
 
   const handleSaveAddress = () => {
     const token = localStorage.getItem('token')
-    const updateData = { address: addressForm.trim() }
+    const updateData = { address: addressForm.trim() === '' ? null : addressForm.trim() }
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/companies/address', {
+    fetch(`${API_URL}/companies/address`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -202,7 +281,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
     const token = localStorage.getItem('token')
     const data = { actualPassword, newPassword }
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/companies/password', {
+    fetch(`${API_URL}/companies/password`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -232,7 +311,6 @@ const CompanyInfo = ({ companyName, email, address }) => {
       .finally(() => setSavingPassword(false))
   }
 
-  // FUNCIONES NUEVAS PARA LOGO
   const openLogoDialog = () => {
     setIsLogoDialogOpen(true)
     setSelectedFile(null)
@@ -272,23 +350,35 @@ const CompanyInfo = ({ companyName, email, address }) => {
 
   const handleUploadLogo = () => {
     if (!selectedFile) return
-    const token = localStorage.getItem('token')
+
     const formData = new FormData()
     formData.append('file', selectedFile)
-    fetch('https://invoice-management-app-3g3w.onrender.com/companies/logo', {
+
+    const token = localStorage.getItem('token')
+
+    fetch(`${API_URL}/companies/logo`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
       },
       body: formData
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Error al subir logo')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Error al subir el logo')
+        }
         closeLogoDialog()
-        setTimeout(() => window.location.reload(), 1500)
+        window.location.reload()
       })
-      .catch(() => alert('Error al subir la imagen'))
+      .catch(err => {
+        console.error('Error uploading logo:', err)
+        alert('Error al subir el logo: ' + err.message)
+      })
   }
+
+  
+  
+  
 
   return (
     <Box mt={3}>
@@ -406,16 +496,53 @@ const CompanyInfo = ({ companyName, email, address }) => {
         >
           <Button variant="outlined" onClick={openPasswordDialog}>Cambiar Contraseña</Button>
           <Button variant="outlined" onClick={openLogoDialog}>Cambiar Logo</Button>
+          <Box sx={{ position: 'relative', display: 'inline-block' }}>
+            <MercadoPagoConnectButton value="Vincular con Mercado Pago" onConnectionSuccess={() => setMpMessage('Cuenta vinculada correctamente')} />
+            {mpMessage && (
+              <Box 
+                sx={{ 
+                  position: 'absolute',
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  mt: 1,
+                  zIndex: 1000,
+                  width: '400px',
+                  display: 'flex',
+                  justifyContent: 'center'
+                }}
+              >
+                <Alert 
+                  severity={mpMessage.startsWith('Error') ? 'error' : 'success'} 
+                  onClose={() => setMpMessage('')} 
+                  sx={{ maxWidth: 600 }}
+                >
+                  {mpMessage}
+                </Alert>
+              </Box>
+            )}
+          </Box>
           <Button
             onClick={handleLogout}
             sx={{
-              mt: 4,
+              mt: 6,
               backgroundColor: '#f5655b',
               color: 'white',
               '&:hover': { backgroundColor: '#d32f2f' }
             }}
           >
             CERRAR SESIÓN
+          </Button>
+          <Button
+            onClick={handleDeleteCompany}
+            sx={{
+              mt: 1,
+              backgroundColor: '#f5655b',
+              color: 'white',
+              '&:hover': { backgroundColor: '#d32f2f' }
+            }}
+          >
+            ELIMINAR CUENTA
           </Button>
         </Box>
       </Box>
@@ -544,6 +671,70 @@ const CompanyInfo = ({ companyName, email, address }) => {
           >
             Agregar
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Company Confirmation Dialog */}
+      <Dialog 
+        open={isDeleteDialogOpen} 
+        onClose={!isCountdownActive ? handleCancelDelete : undefined}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: '#d32f2f', fontWeight: 'bold' }}>
+          {isCountdownActive ? 'Eliminando cuenta...' : '¿Eliminar cuenta?'}
+        </DialogTitle>
+        <DialogContent>
+          {!isCountdownActive ? (
+            <Typography>
+              Esta acción eliminará permanentemente tu cuenta y todos los datos asociados. 
+              Esta acción no se puede deshacer.
+            </Typography>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h6" sx={{ color: '#d32f2f', mb: 2 }}>
+                La cuenta se eliminará en:
+              </Typography>
+              <Typography variant="h2" sx={{ color: '#d32f2f', fontWeight: 'bold', mb: 2 }}>
+                {countdown}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Puedes cancelar esta acción presionando el botón de cancelar
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {!isCountdownActive ? (
+            <>
+              <Button onClick={handleCancelDelete}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleConfirmDelete}
+                sx={{ 
+                  backgroundColor: '#d32f2f', 
+                  color: 'white',
+                  '&:hover': { backgroundColor: '#b71c1c' }
+                }}
+              >
+                Sí, eliminar cuenta
+              </Button>
+            </>
+          ) : (
+            <Button 
+              onClick={handleCancelDelete}
+              variant="contained"
+              sx={{ 
+                backgroundColor: '#4caf50', 
+                color: 'white',
+                '&:hover': { backgroundColor: '#388e3c' }
+              }}
+              disabled={deletingCompany}
+            >
+              Cancelar eliminación
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

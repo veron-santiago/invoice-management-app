@@ -12,7 +12,7 @@ public record CustomerRequest(@NotBlank(message = "El nombre del cliente no pued
                                       message = "El nombre contiene caracteres inválidos")
                               String name,
 
-                              @Size(max = 200, message = "La dirección debe tener como máximo 200 caracteres")
+                              @Size(min = 5, max = 200, message = "La dirección debe tener entre 5 y 200 caracteres")
                               @Pattern(
                                       regexp = "^[\\p{L}0-9 .,'°/#-]*$",
                                       message = "La dirección contiene caracteres inválidos")

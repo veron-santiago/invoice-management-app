@@ -9,14 +9,8 @@ import io.github.veron_santiago.backend.presentation.dto.request.BillRequest;
 import io.github.veron_santiago.backend.presentation.dto.request.CustomerRequest;
 import io.github.veron_santiago.backend.presentation.dto.response.BillDTO;
 import io.github.veron_santiago.backend.presentation.dto.response.CustomerDTO;
-import io.github.veron_santiago.backend.service.exception.ErrorMessages;
-import io.github.veron_santiago.backend.service.exception.InvalidFieldException;
-import io.github.veron_santiago.backend.service.exception.ObjectNotFoundException;
-import io.github.veron_santiago.backend.service.exception.ResourceConflictException;
-import io.github.veron_santiago.backend.service.interfaces.IBillLineService;
-import io.github.veron_santiago.backend.service.interfaces.IBillService;
-import io.github.veron_santiago.backend.service.interfaces.ICustomerService;
-import io.github.veron_santiago.backend.service.interfaces.IPdfService;
+import io.github.veron_santiago.backend.service.exception.*;
+import io.github.veron_santiago.backend.service.interfaces.*;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.mapper.BillMapper;
 import io.github.veron_santiago.backend.util.mapper.CustomerMapper;
@@ -51,8 +45,10 @@ public class BillServiceImpl implements IBillService {
     private final IPdfService pdfService;
     private final JavaMailSender javaMailSender;
     private final IProductRepository productRepository;
+    private final IMercadoPagoService mercadoPagoService;
+    private final QrCodeService qrCodeService;
 
-    public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService, IPdfService pdfService, JavaMailSender javaMailSender, IProductRepository productRepository) {
+    public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService, IPdfService pdfService, JavaMailSender javaMailSender, IProductRepository productRepository, IMercadoPagoService mercadoPagoService, QrCodeService qrCodeService) {
         this.billRepository = billRepository;
         this.companyRepository = companyRepository;
         this.billMapper = billMapper;
@@ -63,6 +59,8 @@ public class BillServiceImpl implements IBillService {
         this.pdfService = pdfService;
         this.javaMailSender = javaMailSender;
         this.productRepository = productRepository;
+        this.mercadoPagoService = mercadoPagoService;
+        this.qrCodeService = qrCodeService;
     }
 
 
@@ -71,10 +69,16 @@ public class BillServiceImpl implements IBillService {
 
         Company company = getCompany(request);
 
-        verifyEmptyCustomerName(billRequest);
         verifyDuplicateProductOrCode(billRequest, company.getId());
 
         AtomicReference<BigDecimal> total = calculateTotal(billRequest);
+
+        byte[] qrBytes = null;
+        if (billRequest.includeQr()){
+            String paymentLink = mercadoPagoService.createPaymentLink(company, total.get());
+            qrBytes = qrCodeService.generateQrCode(paymentLink, 200, 200);
+        }
+
         Customer customer = getCustomerOrCreate(company, billRequest, request);
 
         Bill bill = Bill.builder()
@@ -98,7 +102,7 @@ public class BillServiceImpl implements IBillService {
         saved.setBillLines(new ArrayList<>(billLines));
         saved = billRepository.save(saved);
 
-        String path = pdfService.generateBillPdf(saved, request, billRequest.includeQr());
+        String path = pdfService.generateBillPdf(saved, request, billRequest.includeQr(), qrBytes);
         saved.setPdfPath(path);
         Bill finalSaved = billRepository.save(saved);
 
@@ -147,14 +151,9 @@ public class BillServiceImpl implements IBillService {
                 throw new InvalidFieldException(ErrorMessages.DUPLICATE_CODE_IN_BILL.getMessage());
             }
             Product product = productRepository.findByCodeAndCompanyId(code, companyId).orElse(null);
-            if (product != null && !product.getName().equalsIgnoreCase(name)){
+            if (code != null && product != null && !product.getName().equalsIgnoreCase(name)){
                 throw new ResourceConflictException("El código " + code + " ya está en uso.\nAsignado a: " + product.getName());
             }
-        }
-    }
-    private void verifyEmptyCustomerName(BillRequest billRequest){
-        if (billRequest.customerName() == null || billRequest.customerName().isBlank()) {
-            throw new InvalidFieldException(ErrorMessages.CUSTOMER_NAME_IS_EMPTY.getMessage());
         }
     }
     private void sendPdfToEmail(String email, byte[] pdf, String companyName, Long billId){
@@ -171,10 +170,9 @@ public class BillServiceImpl implements IBillService {
 
             javaMailSender.send(message);
         } catch (MessagingException | MailException e) {
-            throw new RuntimeException("Error al enviar el correo: " + e.getMessage(), e);
+            throw new InternalServerException("Error al enviar el correo: " + e.getMessage());
         }
     }
-
     private AtomicReference<BigDecimal> calculateTotal(BillRequest billRequest){
         AtomicReference<BigDecimal> total = new AtomicReference<>(BigDecimal.ZERO);
         billRequest.billLineRequests()
@@ -189,9 +187,15 @@ public class BillServiceImpl implements IBillService {
                 .filter(c -> c.getName().equalsIgnoreCase(billRequest.customerName()))
                 .findFirst()
                 .orElseGet(() -> {
-                    CustomerDTO dto = customerService.createCustomer(
-                            new CustomerRequest(billRequest.customerName(), company.getAddress(), billRequest.customerEmail()), request);
-                    return customerMapper.customerDTOToCustomer(dto, new Customer(), companyRepository, billRepository);
+                    CustomerRequest cReq = new CustomerRequest(
+                            billRequest.customerName(),
+                            billRequest.customerAddress(),
+                            billRequest.customerEmail()
+                    );
+                    CustomerDTO saved = customerService.createCustomer(cReq, request);
+                    return customerMapper.customerDTOToCustomer(
+                            saved, new Customer(), companyRepository, billRepository
+                    );
                 });
     }
     private List<BillLine> createBillLines(BillRequest billRequest, Bill bill, HttpServletRequest request){

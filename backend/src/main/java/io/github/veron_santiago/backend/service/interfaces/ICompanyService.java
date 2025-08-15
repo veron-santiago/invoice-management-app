@@ -25,4 +25,5 @@ public interface ICompanyService {
     void uploadLogo(MultipartFile file, HttpServletRequest request) throws IOException;
     void deleteCompany(HttpServletRequest request);
     boolean verifyEmail(String token);
+    boolean hasAccessToken(HttpServletRequest request);
 }

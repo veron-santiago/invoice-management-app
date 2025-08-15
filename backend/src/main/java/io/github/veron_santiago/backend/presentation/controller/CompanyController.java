@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/companies")
@@ -39,6 +40,12 @@ public class CompanyController {
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
                 .body(resource);
+    }
+
+    @GetMapping("/access-token")
+    public ResponseEntity<Boolean> hasAccessToken(HttpServletRequest request){
+        boolean res = companyService.hasAccessToken(request);
+        return ResponseEntity.ok(res);
     }
 
     @PostMapping("/logo")

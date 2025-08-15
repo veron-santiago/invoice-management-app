@@ -1,4 +1,5 @@
-import { TextField, Button, Box, Typography, Link, Alert } from '@mui/material'
+import { TextField, Button, Box, Typography, Link, Alert, InputAdornment, IconButton } from '@mui/material'
+import { Visibility, VisibilityOff } from '@mui/icons-material'
 import { useState } from 'react'
 
 const SignupForm = () => {
@@ -7,17 +8,25 @@ const SignupForm = () => {
     const [email, setEmail] = useState('')
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const API_URL = import.meta.env.VITE_API_URL;
 
-    const handleSubmit = async (e) => {
+        const handleSubmit = async (e) => {
         e.preventDefault()
+        setIsSubmitting(true)
         try {
-            const response = await fetch('https://invoice-management-app-3g3w.onrender.com/auth/sign-up', {
+            const response = await fetch(`${API_URL}/auth/sign-up`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ companyName: username, email, password })
+                body: JSON.stringify({ companyName: username || null, email: email || null, password: password || null })
             })
             const data = await response.json()
             if (response.ok && data.status) {
+                setUsername('')
+                setPassword('')
+                setEmail('')
+                setError('')
                 let mensaje = data.message || 'Registro exitoso';
                 setSuccess(mensaje)
                 setTimeout(() => setSuccess(''), 3000)
@@ -33,11 +42,16 @@ const SignupForm = () => {
         } catch (err) {
             setError('Ha ocurrido un error')
             setTimeout(() => setError(''), 3000)
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
     return (
         <Box component="form" onSubmit={handleSubmit}>
+            <Typography variant="h4" component="h1" align="center" sx={{ mb: 3, fontWeight: 'bold' }}>
+                Registro
+            </Typography>
             <TextField
                 label="Nombre de la compañia"
                 fullWidth
@@ -54,14 +68,27 @@ const SignupForm = () => {
             />
             <TextField
                 label="Contraseña"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 fullWidth
                 margin="normal"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                InputProps={{
+                    endAdornment: (
+                        <InputAdornment position="end">
+                            <IconButton
+                                aria-label="toggle password visibility"
+                                onClick={() => setShowPassword(!showPassword)}
+                                edge="end"
+                            >
+                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                        </InputAdornment>
+                    ),
+                }}
             />
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', mt: 2, mb: 2 }}>
-                <Button type="submit" variant="contained" color="primary">
+                                <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
                     Enviar
                 </Button>
             </Box>

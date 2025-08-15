@@ -67,4 +67,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    @ExceptionHandler(BadGatewayException.class)
+    public ResponseEntity<Map<String, Object>> handleBadGateway(BadGatewayException e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", e.getMessage());
+        body.put("status", HttpStatus.BAD_GATEWAY.value());
+        return new ResponseEntity<>(body, HttpStatus.BAD_GATEWAY);
+    }
+
+    @ExceptionHandler(InternalServerException.class)
+    public ResponseEntity<Map<String, Object>> handleInternalServer(InternalServerException e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", e.getMessage());
+        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(UnprocessableEntity.class)
+    public ResponseEntity<Map<String, Object>> handleUnprocessableEntity(UnprocessableEntity e){
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", e.getMessage());
+        body.put("status", HttpStatus.UNPROCESSABLE_ENTITY.value());
+        return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
 }

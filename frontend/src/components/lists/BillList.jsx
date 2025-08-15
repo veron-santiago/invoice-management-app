@@ -30,11 +30,13 @@ const BillList = () => {
   const [orderBy, setOrderBy] = useState('billNumber')
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
+  const API_URL = import.meta.env.VITE_API_URL;
+
 
   useEffect(() => {
     const token = localStorage.getItem('token')
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/bills', {
+    fetch(`${API_URL}/bills`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -129,7 +131,7 @@ const BillList = () => {
       const token = localStorage.getItem('token')
       console.log('Token obtenido:', token ? 'Sí' : 'No')
       
-      const url = `http://localhost:8080/bills/${billId}/pdf`
+      const url = `${API_URL}/bills/${billId}/pdf`
       console.log('URL de descarga EXACTA:', url)
       console.log('URL de descarga length:', url.length)
       

@@ -21,6 +21,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { hasAccessToken } from "../services/companyService";
+import MercadoPagoConnectButton from "../components/MercadoPagoConnectButton";
 
 export default function BillGeneratorPage() {
   const navigate = useNavigate();
@@ -30,21 +32,56 @@ export default function BillGeneratorPage() {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [sendEmail, setSendEmail] = useState(false);
+  const [includeQr, setIncludeQr] = useState(false);
+  const [isMpConnected, setIsMpConnected] = useState(true);
   const [items, setItems] = useState([{ product: "", code: "", price: "", quantity: "" }]);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const nameRef = useRef(null);
-  const emailRef = useRef(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [serviceError, setServiceError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showError, setShowError] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const nameRef = useRef();
+  const emailRef = useRef();
+  const addressRef = useRef();
   const productRefs = useRef([]);
   const codeRefs = useRef([]);
   const priceRefs = useRef([]);
   const quantityRefs = useRef([]);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [showError, setShowError] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [serviceError, setServiceError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
+
+  const hasUnsavedChanges = name || email || address || items.some(item => item.product || item.code || item.price || item.quantity);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const checkMpConnection = async () => {
+        if (token) {
+            try {
+                const connected = await hasAccessToken(token);
+                setIsMpConnected(connected);
+            } catch (error) {
+                console.error("Error checking Mercado Pago connection:", error);
+                setIsMpConnected(false);
+            }
+        }
+    };
+
+    fetch(`${API_URL}/customers`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.json())
+      .then((data) => setCustomers(data));
+
+    fetch(`${API_URL}/products`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.json())
+      .then((data) => setProducts(data));
+
+    checkMpConnection();
+  }, [navigate]);
 
   useEffect(() => {
     if (Object.keys(fieldErrors).length > 0) {
@@ -79,6 +116,7 @@ export default function BillGeneratorPage() {
     setAddress("");
     setSendEmail(false);
     setItems([{ product: "", code: "", price: "", quantity: "" }]);
+    setIncludeQr(false);
   };
 
   const handleNameKeyDown = (e) => {
@@ -148,7 +186,7 @@ export default function BillGeneratorPage() {
   const handleConfirmGenerate = () => {
     setConfirmDialogOpen(false);
     setIsGenerating(true);
-  
+
     setFieldErrors({});
     setServiceError("");
     setSuccessMessage("");
@@ -179,15 +217,15 @@ export default function BillGeneratorPage() {
     
 
     const payload = {
-      customerName: name,
-      customerEmail: email,
-      customerAddress: address,
+      customerName: name.trim() === "" ? null : name.trim(),
+      customerEmail: email.trim() === "" ? null : email.trim(),
+      customerAddress: address.trim() === "" ? null : address.trim(),
       billLineRequests: formattedItems,
       sendEmail: sendEmail,
-      includeQr: false
+      includeQr: includeQr
     };
   
-    fetch("https://invoice-management-app-3g3w.onrender.com/bills", {
+    fetch(`${API_URL}/bills`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -206,7 +244,6 @@ export default function BillGeneratorPage() {
         if (e.message) {
           newServiceError = e.message;
         } else {
-          
           
           if (e.customerName) {
             newFieldErrors.customerName = e.customerName;
@@ -280,7 +317,7 @@ export default function BillGeneratorPage() {
       item.quantity.trim() !== ""
     );
     const hasData = hasCustomerData || hasItemData;
-    setHasUnsavedChanges(hasData);
+
     return hasData;
   }, [name, email, address, items]);
 
@@ -326,11 +363,11 @@ export default function BillGeneratorPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("https://invoice-management-app-3g3w.onrender.com/customers", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/customers`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then(setCustomers)
       .catch(() => {});
-    fetch("https://invoice-management-app-3g3w.onrender.com/products", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/products`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then(setProducts)
       .catch(() => {});
@@ -607,7 +644,9 @@ export default function BillGeneratorPage() {
             </Box>
           ))}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "70%", mt: 2 }}>
-            <Button onClick={addItem} variant="outlined">Agregar Ítem</Button>
+            <Button onClick={addItem} variant="outlined" sx={{ mb: 2 }}>
+              Agregar Ítem
+            </Button>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>Importe Total:</Typography>
               <TextField
@@ -624,6 +663,26 @@ export default function BillGeneratorPage() {
               />
 
             </Box>
+          </Box>
+          <Box sx={{ display: "flex", justifyContent: "flex-start", width: "70%", mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={includeQr}
+                    onChange={(e) => setIncludeQr(e.target.checked)}
+                    name="includeQr"
+                    disabled={!isMpConnected}
+                  />
+                }
+                label="Incluir QR de pago"
+              />
+              {!isMpConnected && (
+                <Alert severity="warning" action={<MercadoPagoConnectButton onConnectionSuccess={() => setIsMpConnected(true)} buttonText="Vincular" />}>
+                  Cuenta no vinculada a Mercado Pago.
+                </Alert>
+              )}
+            </Box>  
           </Box>
           
           {serviceError && (

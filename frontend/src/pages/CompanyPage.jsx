@@ -4,6 +4,7 @@ import SidebarMenu from '../components/SidebarMenu'
 import CompanyInfo from '../components/CompanyInfo'
 
 function CompanyPage() {
+  const API_URL = import.meta.env.VITE_API_URL;
   const [companyData, setCompanyData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -11,7 +12,7 @@ function CompanyPage() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     
-    fetch('https://invoice-management-app-3g3w.onrender.com/companies', {
+    fetch(`${API_URL}/companies`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -19,7 +20,7 @@ function CompanyPage() {
         return res.json()
       })
       .then(data => {
-        console.log('Company data received:', data) // Debug log
+        console.log('Company data received:', data)
         setCompanyData(data)
         setIsLoading(false)
       })

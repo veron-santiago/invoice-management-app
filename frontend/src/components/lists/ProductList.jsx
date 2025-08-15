@@ -47,11 +47,12 @@ const ProductList = () => {
   const [createForm, setCreateForm] = useState({ name: '', code: '', price: '' })
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const token = localStorage.getItem('token')
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/products', {
+    fetch(`${API_URL}/products`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -104,7 +105,7 @@ const ProductList = () => {
 
   const confirmDelete = () => {
     const token = localStorage.getItem('token')
-    fetch(`https://invoice-management-app-3g3w.onrender.com/products/${productToDelete.id}`, {
+    fetch(`${API_URL}/products/${productToDelete.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -140,16 +141,15 @@ const ProductList = () => {
   const handleSaveEdit = () => {
     const token = localStorage.getItem('token')
     
-    // Prepare update data with proper handling of optional code field
     const updateData = {
       name: editForm.name.trim(),
-      code: editForm.code.trim() === '' ? '' : editForm.code.trim(), // Send empty string for optional field
+      code: editForm.code.trim() === '' ? null : editForm.code.trim(), 
       price: parseFloat(editForm.price)
     }
     
-    console.log('Sending product update data:', updateData) // Debug log
+    console.log('Sending product update data:', updateData)
 
-    fetch(`https://invoice-management-app-3g3w.onrender.com/products/${editingProduct}`, {
+    fetch(`${API_URL}/products/${editingProduct}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -160,7 +160,6 @@ const ProductList = () => {
       .then(res => {
         if (!res.ok) {
           return res.json().then(err => {
-            // Handle validation errors from backend
             if (err.errors && Array.isArray(err.errors)) {
               throw new Error(err.errors.join(', '))
             }
@@ -170,7 +169,7 @@ const ProductList = () => {
         return res.json()
       })
       .then(updatedProduct => {
-        console.log('Received updated product:', updatedProduct) // Debug log
+        console.log('Received updated product:', updatedProduct)
         setProducts(products.map(p => 
           p.id === editingProduct ? updatedProduct : p
         ))
@@ -218,19 +217,18 @@ const ProductList = () => {
     const token = localStorage.getItem('token')
     const createData = {
       name: createForm.name.trim(),
-      code: createForm.code.trim() === '' ? '' : createForm.code.trim(), // Send empty string for optional field
+      code: createForm.code.trim() === '' ? null : createForm.code.trim(), 
       price: createForm.price.trim() === '' ? null : parseFloat(createForm.price)
     }
     
-    console.log('Sending product create data:', createData) // Debug log
+    console.log('Sending product create data:', createData)
 
-    // Validate required fields
     if (!createData.name) {
       setCreateError('El nombre del producto es obligatorio')
       return
     }
 
-    fetch('https://invoice-management-app-3g3w.onrender.com/products', {
+    fetch(`${API_URL}/products`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -241,7 +239,6 @@ const ProductList = () => {
       .then(res => {
         if (!res.ok) {
           return res.json().then(err => {
-            // Handle validation errors from backend
             if (err.errors && Array.isArray(err.errors)) {
               throw new Error(err.errors.join(', '))
             }
@@ -255,13 +252,13 @@ const ProductList = () => {
         setCreateForm({ name: '', code: '', price: '' })
         setCreateError('')
         setCreateSuccess('Producto creado con éxito')
-        // Clear success message after 3 seconds
         setTimeout(() => setCreateSuccess(''), 3000)
       })
       .catch(err => {
         console.error(err)
         setCreateError(err.message)
         setCreateSuccess('')
+        setTimeout(() => setCreateError(''), 5000)
       })
   }
 
@@ -446,7 +443,7 @@ const ProductList = () => {
             <TableBody>
               {sortProducts(filterProducts(products))
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-.map((product) => (
+                .map((product) => (
                   <TableRow key={product.id}>
                     <TableCell>
                       {editingProduct === product.id ? (

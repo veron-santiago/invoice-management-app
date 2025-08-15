@@ -2,6 +2,8 @@ package io.github.veron_santiago.backend.persistence.repository;
 
 import io.github.veron_santiago.backend.persistence.entity.Bill;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,4 +13,6 @@ import java.util.Optional;
 public interface IBillRepository extends JpaRepository<Bill, Long> {
     List<Bill> findByCompanyId(Long companyId);
     List<Bill> findByCustomerId(Long customerId);
+    @Query("SELECT b.billNumber FROM Bill b WHERE b.id = :id")
+    Long getBillNumberById(@Param("id") Long id);
 }

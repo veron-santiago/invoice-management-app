@@ -33,6 +33,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -162,11 +163,17 @@ public class CompanyServiceImpl implements ICompanyService {
 
     @Override
     public void uploadLogo(MultipartFile file, HttpServletRequest request) {
+        System.out.println("hola");
+        String extension = Objects.requireNonNull(FilenameUtils.getExtension(file.getOriginalFilename())).toLowerCase();
+        if (!extension.equals("png") && !extension.equals("jpg") && !extension.equals("jpeg")) {
+            throw new IllegalArgumentException("Sólo se aceptan archivos PNG y JPG");
+        }
+
         Long companyId = authUtil.getAuthenticatedCompanyId(request);
-        Company company = companyRepository.findById(companyId).orElseThrow(()-> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
 
         Path path = getLogosPath(companyId);
-        String extension = FilenameUtils.getExtension(file.getOriginalFilename());
         String fileName = "logo." + extension;
         Path logoPath = path.resolve(fileName);
 
@@ -180,6 +187,7 @@ public class CompanyServiceImpl implements ICompanyService {
         company.setLogoPath("storage/logos/" + companyId + "/" + fileName);
         companyRepository.save(company);
     }
+
 
     @Override
     public void deleteCompany(HttpServletRequest request) {
@@ -204,6 +212,13 @@ public class CompanyServiceImpl implements ICompanyService {
         company.setVerified(true);
         companyRepository.save(company);
         return true;
+    }
+
+    @Override
+    public boolean hasAccessToken(HttpServletRequest request) {
+        Company company = authUtil.getCompanyByRequest(request);
+        String accessToken = company.getMpAccessToken();
+        return accessToken != null && !accessToken.isEmpty();
     }
 
     private void sendVerificationEmail(String email, String verificationToken){
