@@ -148,7 +148,7 @@ const CompanyInfo = ({ companyName, email, address }) => {
 
   const handleSaveName = () => {
     const token = localStorage.getItem('token')
-    const updateData = { name: nameForm.trim() }
+    const updateData = { name: nameForm.trim() === '' ? null : nameForm.trim() }
 
     fetch(`${API_URL}/companies/name`, {
       method: 'PUT',
