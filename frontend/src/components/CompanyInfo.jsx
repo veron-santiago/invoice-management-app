@@ -752,6 +752,13 @@ const CompanyInfo = ({ companyName, email, address }) => {
           </Alert>
         </Box>
       )}
+      {nameError && (
+        <Box mt={2} display="flex" justifyContent="center">
+          <Alert severity="error" onClose={() => setNameError('')} sx={{ maxWidth: 600 }}>
+            {nameError}
+          </Alert>
+        </Box>
+      )}
       {emailSuccess && (
         <Box mt={2} display="flex" justifyContent="center">
           <Alert severity="success" onClose={() => setEmailSuccess('')} sx={{ maxWidth: 600 }}>
@@ -763,6 +770,13 @@ const CompanyInfo = ({ companyName, email, address }) => {
         <Box mt={2} display="flex" justifyContent="center">
           <Alert severity="success" onClose={() => setAddressSuccess('')} sx={{ maxWidth: 600 }}>
             {addressSuccess}
+          </Alert>
+        </Box>
+      )}
+      {nameSuccess && (
+        <Box mt={2} display="flex" justifyContent="center">
+          <Alert severity="success" onClose={() => setNameSuccess('')} sx={{ maxWidth: 600 }}>
+            {nameSuccess}
           </Alert>
         </Box>
       )}

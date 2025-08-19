@@ -93,11 +93,8 @@ public class CompanyServiceImpl implements ICompanyService {
     @Override
     public CompanyDTO updateAddress(CompanyUpdateAddress companyUpdateAddress, HttpServletRequest request) {
         Company company = authUtil.getCompanyByRequest(request);
-
         String address = companyUpdateAddress.address();
-
-        if (address == null) throw new InvalidFieldException(ErrorMessages.EMPTY_FIELD.getMessage());
-
+        if (Objects.equals(company.getAddress(), address)) throw new InvalidFieldException(ErrorMessages.EMAIL_SAME_AS_CURRENT.getMessage());
         company.setAddress(address);
         Company savedCompany = companyRepository.save(company);
         return companyMapper.companyToCompanyDTO(savedCompany, new CompanyDTO());
