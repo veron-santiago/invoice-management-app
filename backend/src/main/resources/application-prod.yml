@@ -4,3 +4,5 @@ app:
       - https://invoice-management-frontend-7ut4.onrender.com
   mp:
     redirect-uri: https://invoice-management-app-ohio.onrender.com/mp/callback
+  api:
+    uri: https://invoice-management-app-ohio.onrender.com

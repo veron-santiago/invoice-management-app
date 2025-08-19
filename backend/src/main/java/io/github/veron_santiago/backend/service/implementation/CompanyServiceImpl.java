@@ -17,10 +17,9 @@ import io.github.veron_santiago.backend.service.interfaces.ICompanyService;
 import io.github.veron_santiago.backend.util.AuthUtil;
 import io.github.veron_santiago.backend.util.JwtUtil;
 import io.github.veron_santiago.backend.util.mapper.CompanyMapper;
-import org.springframework.core.io.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.io.FilenameUtils;
-import org.springframework.core.io.UrlResource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,16 +28,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class CompanyServiceImpl implements ICompanyService {
+
+    @Value("${app.api.uri}") private String apiUri;
 
     private final ICompanyRepository companyRepository;
     private final JavaMailSender javaMailSender;
@@ -205,7 +202,7 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     private void sendVerificationEmail(String email, String verificationToken){
-        String verificationUrl = "http://localhost:8080/auth/verify?token=" + verificationToken;
+        String verificationUrl = apiUri + "/auth/verify?token=" + verificationToken;
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
         message.setSubject("Verificación de Correo Electrónico");

@@ -6,3 +6,5 @@ app:
       - https://d34fb2fe21ff.ngrok-free.app
   mp:
     redirect-uri: https://d34fb2fe21ff.ngrok-free.app/mp/callback
+  api:
+    uri: http://localhost:8080
