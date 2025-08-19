@@ -1,5 +1,6 @@
 package io.github.veron_santiago.backend.presentation.controller;
 
+import io.github.veron_santiago.backend.configuration.security.CorsProperties;
 import io.github.veron_santiago.backend.presentation.dto.auth.AuthCreateCompany;
 import io.github.veron_santiago.backend.presentation.dto.auth.AuthRequest;
 import io.github.veron_santiago.backend.presentation.dto.auth.AuthResponse;
@@ -20,10 +21,12 @@ public class  AuthenticationController {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final ICompanyService companyService;
+    private final CorsProperties corsProperties;
 
-    public AuthenticationController(UserDetailsServiceImpl userDetailsService, ICompanyService companyService) {
+    public AuthenticationController(UserDetailsServiceImpl userDetailsService, ICompanyService companyService, CorsProperties corsProperties) {
         this.userDetailsService = userDetailsService;
         this.companyService = companyService;
+        this.corsProperties = corsProperties;
     }
 
     @PostMapping("/log-in")
@@ -46,7 +49,7 @@ public class  AuthenticationController {
         String message = verified ? "Correo verificado con éxito" : "No se pudo verificar el correo";
         String encodedMessage = URLEncoder.encode(message, StandardCharsets.UTF_8);
         return ResponseEntity.status(HttpStatus.SEE_OTHER)
-                .location(URI.create("http://localhost:5173/login?message=" + encodedMessage + "&verified=" + verified))
+                .location(URI.create( corsProperties.getAllowedOrigins().getFirst() + "/login?message=" + encodedMessage + "&verified=" + verified))
                 .build();
     }
 
