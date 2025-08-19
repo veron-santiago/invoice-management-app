@@ -75,7 +75,6 @@ public class Bill {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", foreignKey = @ForeignKey(name = "fk_bill_customer"))
-    @OnDelete(action = OnDeleteAction.NO_ACTION)
     private Customer customer;
 
 }
