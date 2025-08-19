@@ -21,7 +21,7 @@ public interface ICompanyService {
     CompanyDTO updateName(CompanyUpdateName companyUpdateName, HttpServletRequest request);
     void updateEmail(CompanyUpdateEmail companyUpdateEmail, HttpServletRequest request);
     void updatePassword(CompanyUpdatePassword updatePassword, HttpServletRequest request);
-    Resource getLogo(HttpServletRequest request) throws MalformedURLException;
+    String getLogo(HttpServletRequest request);
     void uploadLogo(MultipartFile file, HttpServletRequest request) throws IOException;
     void deleteCompany(HttpServletRequest request);
     boolean verifyEmail(String token);

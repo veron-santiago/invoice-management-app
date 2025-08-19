@@ -35,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class CompanyServiceImpl implements ICompanyService {
@@ -45,14 +46,16 @@ public class CompanyServiceImpl implements ICompanyService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final AuthUtil authUtil;
+    private final CloudinaryService cloudinaryService;
 
-    public CompanyServiceImpl(ICompanyRepository companyRepository, JavaMailSender javaMailSender, CompanyMapper companyMapper, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthUtil authUtil) {
+    public CompanyServiceImpl(ICompanyRepository companyRepository, JavaMailSender javaMailSender, CompanyMapper companyMapper, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthUtil authUtil, CloudinaryService cloudinaryService) {
         this.companyRepository = companyRepository;
         this.javaMailSender = javaMailSender;
         this.companyMapper = companyMapper;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
         this.authUtil = authUtil;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Override
@@ -83,13 +86,13 @@ public class CompanyServiceImpl implements ICompanyService {
 
     @Override
     public CompanyDTO getCompany(HttpServletRequest request) {
-        Company company = getCompanyByRequest(request);
+        Company company = authUtil.getCompanyByRequest(request);
         return companyMapper.companyToCompanyDTO(company, new CompanyDTO());
     }
 
     @Override
     public CompanyDTO updateAddress(CompanyUpdateAddress companyUpdateAddress, HttpServletRequest request) {
-        Company company = getCompanyByRequest(request);
+        Company company = authUtil.getCompanyByRequest(request);
 
         String address = companyUpdateAddress.address();
 
@@ -102,7 +105,7 @@ public class CompanyServiceImpl implements ICompanyService {
 
     @Override
     public CompanyDTO updateName(CompanyUpdateName companyUpdateName, HttpServletRequest request) {
-        Company company = getCompanyByRequest(request);
+        Company company = authUtil.getCompanyByRequest(request);
         String name = companyUpdateName.name();
         if (name == null || name.isEmpty()) throw new InvalidFieldException(ErrorMessages.EMPTY_FIELD.getMessage());
 
@@ -116,7 +119,7 @@ public class CompanyServiceImpl implements ICompanyService {
 
     @Override
     public void updateEmail(CompanyUpdateEmail companyUpdateEmail, HttpServletRequest request) {
-        Company company = getCompanyByRequest(request);
+        Company company = authUtil.getCompanyByRequest(request);
         String currentEmail = company.getEmail();
         String newEmail = companyUpdateEmail.email().toLowerCase();
 
@@ -137,7 +140,7 @@ public class CompanyServiceImpl implements ICompanyService {
 
     @Override
     public void updatePassword(CompanyUpdatePassword updatePassword, HttpServletRequest request) {
-        Company company = getCompanyByRequest(request);
+        Company company = authUtil.getCompanyByRequest(request);
         String actualP = updatePassword.actualPassword();
         String newP = updatePassword.newPassword();
         if (!passwordEncoder.matches(actualP, company.getPassword())) throw new BadCredentialsException(ErrorMessages.INCORRECT_CURRENT_PASSWORD.getMessage());
@@ -147,47 +150,30 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     @Override
-    public Resource getLogo(HttpServletRequest request) throws MalformedURLException {
-        Company company = getCompanyByRequest(request);
+    public String getLogo(HttpServletRequest request) {
+        Company company = authUtil.getCompanyByRequest(request);
         String logoPath = company.getLogoPath();
-        if (logoPath == null || logoPath.isBlank()) return null;
-
-        Path path = Paths.get(System.getProperty("user.dir"))
-                .getParent()
-                .resolve(logoPath);
-
-        if (Files.notExists(path)) return null;
-
-        return new UrlResource(path.toUri());
+        return logoPath == null || logoPath.isBlank() ? null : logoPath;
     }
 
     @Override
-    public void uploadLogo(MultipartFile file, HttpServletRequest request) {
-        System.out.println("hola");
+    public void uploadLogo(MultipartFile file, HttpServletRequest request) throws IOException {
         String extension = Objects.requireNonNull(FilenameUtils.getExtension(file.getOriginalFilename())).toLowerCase();
         if (!extension.equals("png") && !extension.equals("jpg") && !extension.equals("jpeg")) {
             throw new IllegalArgumentException("Sólo se aceptan archivos PNG y JPG");
         }
 
-        Long companyId = authUtil.getAuthenticatedCompanyId(request);
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
+        Company company = authUtil.getCompanyByRequest(request);
+        Long companyId = company.getId();
+        String url = "logos/" + companyId + "/";
 
-        Path path = getLogosPath(companyId);
-        String fileName = "logo." + extension;
-        Path logoPath = path.resolve(fileName);
+        UUID uuid = UUID.randomUUID();
+        String name = uuid.toString().substring(0, 13);
 
-        try {
-            Files.createDirectories(path);
-            file.transferTo(logoPath.toFile());
-        } catch (IOException e) {
-            throw new IllegalStateException("Error al guardar la imagen");
-        }
-
-        company.setLogoPath("storage/logos/" + companyId + "/" + fileName);
+        String path = cloudinaryService.uploadField(file, url, name, false);
+        company.setLogoPath(path);
         companyRepository.save(company);
     }
-
 
     @Override
     public void deleteCompany(HttpServletRequest request) {
@@ -229,17 +215,5 @@ public class CompanyServiceImpl implements ICompanyService {
         message.setText("Haz click en el siguiente enlace para verificar tu correo: " + verificationUrl);
         javaMailSender.send(message);
     }
-    private Company getCompanyByRequest(HttpServletRequest request){
-        Long companyId = authUtil.getAuthenticatedCompanyId(request);
-        return companyRepository.findById(companyId)
-                .orElseThrow( () -> new ObjectNotFoundException(ErrorMessages.COMPANY_NOT_FOUND.getMessage()));
-    }
-    private Path getLogosPath(Long companyId){
-        return Paths.get(System.getProperty("user.dir"))
-                .getParent()
-                .resolve("storage")
-                .resolve("logos")
-                .resolve(companyId.toString());
-    };
 
 }

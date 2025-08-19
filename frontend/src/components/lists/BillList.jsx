@@ -56,44 +56,51 @@ const BillList = () => {
   const formatNumber = (number) =>
     number.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-  const computeStatus = (bill) =>
-    bill.paymentStatus
-      ? 'Abonado'
-      : dayjs().isAfter(bill.dueDate)
-      ? 'QR Caducado'
-      : 'Pendiente'
+
 
   const handleRequestSort = (property) => {
-    const prop = property === 'issueDate' || property === 'dueDate' ? 'billNumber' : property
-    const isAsc = orderBy === prop && order === 'asc'
-    setOrder(isAsc ? 'desc' : 'asc')
-    setOrderBy(prop)
-  }
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
 
   const sortBills = (array) => {
-    return [...array].sort((a, b) => {
+    const sortedArray = [...array].sort((a, b) => {
+      if (orderBy === 'dueDate') {
+        const aHasDueDate = a.dueDate !== null;
+        const bHasDueDate = b.dueDate !== null;
+
+        if (aHasDueDate !== bHasDueDate) {
+          return order === 'asc' ? (aHasDueDate ? 1 : -1) : (aHasDueDate ? -1 : 1);
+        }
+
+        return order === 'asc' ? a.billNumber - b.billNumber : b.billNumber - a.billNumber;
+      }
+
       const getValue = (bill) => {
         switch (orderBy) {
           case 'billNumber':
-            return bill.billNumber
+            return bill.billNumber;
           case 'totalAmount':
-            return bill.totalAmount
+            return bill.totalAmount;
           case 'customer.name':
-            return bill.customerName.toLowerCase()
-          case 'paymentStatus':
-            return computeStatus(bill).toLowerCase()
+            return bill.customerName.toLowerCase();
+          // A default case is good practice, though we control orderBy.
           default:
-            return bill.billNumber
+            return bill.billNumber;
         }
-      }
-      const aVal = getValue(a)
-      const bVal = getValue(b)
+      };
+
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+
       if (typeof aVal === 'string') {
-        return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+        return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return order === 'asc' ? aVal - bVal : bVal - aVal
-    })
-  }
+      return order === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+    return sortedArray;
+  };
 
   const filterBills = (bills) => {
     const normalizedQuery = searchQuery.toLowerCase().replace(/\./g, '')
@@ -103,7 +110,6 @@ const BillList = () => {
       const dueDate = dayjs(bill.dueDate).format('DD/MM/YYYY')
       const billNumber = bill.billNumber.toString().padStart(8, '0')
       const customerName = bill.customerName
-      const status = computeStatus(bill)
       const totalAmount = formatNumber(bill.totalAmount).replace(/\./g, '')
 
       const values = [
@@ -111,8 +117,7 @@ const BillList = () => {
         dueDate,
         billNumber,
         customerName,
-        totalAmount,
-        status
+        totalAmount
       ]
 
       return values.some((val) =>
@@ -122,52 +127,46 @@ const BillList = () => {
   }
 
   const handleDownloadPdf = async (billId) => {
-    console.log('Iniciando descarga de PDF para bill ID:', billId)
-    console.log('Tipo de billId:', typeof billId)
-    console.log('billId es undefined?', billId === undefined)
-    console.log('billId es null?', billId === null)
-    
-    try {
-      const token = localStorage.getItem('token')
-      console.log('Token obtenido:', token ? 'Sí' : 'No')
-      
-      const url = `${API_URL}/bills/${billId}/pdf`
-      console.log('URL de descarga EXACTA:', url)
-      console.log('URL de descarga length:', url.length)
-      
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+    const token = localStorage.getItem("token");
+  const apiRes = await fetch(`${API_URL}/bills/${billId}/pdf`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` }
+  });
 
-      console.log('Response status:', response.status)
-      console.log('Response headers:', response.headers)
+  if (!apiRes.ok) {
+    throw new Error(`Error al pedir URL del PDF: ${apiRes.status}`);
+  }
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Error response:', errorText)
-        throw new Error(`Error ${response.status}: ${errorText}`)
-      }
+  const url = (await apiRes.text()).trim();
 
-      console.log('Convirtiendo a blob...')
-      const blob = await response.blob()
-      console.log('Blob creado, tamaño:', blob.size, 'bytes')
-      
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = `factura-${billId}.pdf`
-      document.body.appendChild(link)
-      console.log('Iniciando descarga...')
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(downloadUrl)
-      console.log('Descarga completada')
-    } catch (error) {
-      console.error('Error completo downloading PDF:', error)
-      alert(`Error al descargar PDF: ${error.message}`)
+  try {
+    const fileRes = await fetch(url, { method: "GET", mode: "cors" });
+    if (!fileRes.ok) {
+      window.open(url, "_blank");
+      return;
     }
+
+    const u = new URL(url);
+    const parts = u.pathname.split("/");
+    const filename = decodeURIComponent(parts[parts.length - 1]);
+
+    const blob = await fileRes.blob();
+    if (!blob || blob.size === 0) {
+      window.open(url, "_blank");
+      return;
+    }
+
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    window.open(url, "_blank");
+  }
   }
 
   return (
@@ -214,42 +213,39 @@ const BillList = () => {
             <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
               <TableRow>
                 <TableCell
-                  sx={{ width: '100px', cursor: 'pointer' }}
+                  sx={{ width: '120px', cursor: 'pointer' }}
                   onClick={() => handleRequestSort('issueDate')}
                 >
                   Emisión <ArrowDropDownIcon sx={{ fontSize: 16 }} />
                 </TableCell>
                 <TableCell
-                  sx={{ width: '128px', cursor: 'pointer' }}
+                  sx={{ width: '140px', cursor: 'pointer' }}
                   onClick={() => handleRequestSort('dueDate')}
                 >
                   Vencimiento <ArrowDropDownIcon sx={{ fontSize: 16 }} />
                 </TableCell>
                 <TableCell
-                  sx={{ width: '110px', cursor: 'pointer' }}
+                  sx={{ width: '130px', cursor: 'pointer' }}
                   onClick={() => handleRequestSort('billNumber')}
                 >
                   Número <ArrowDropDownIcon sx={{ fontSize: 16 }} />
                 </TableCell>
                 <TableCell
-                  sx={{ width: '200px', cursor: 'pointer' }}
+                  sx={{ width: '250px', cursor: 'pointer' }}
                   onClick={() => handleRequestSort('customerName')}
                 >
                   Receptor <ArrowDropDownIcon sx={{ fontSize: 16 }} />
                 </TableCell>
                 <TableCell
-                  sx={{ width: '120px', cursor: 'pointer' }}
+                  sx={{ width: '148px', cursor: 'pointer' }}
                   onClick={() => handleRequestSort('totalAmount')}
                 >
                   Imp. Total <ArrowDropDownIcon sx={{ fontSize: 16 }} />
                 </TableCell>
-                <TableCell
-                  sx={{ width: '130px', cursor: 'pointer' }}
-                  onClick={() => handleRequestSort('paymentStatus')}
-                >
-                  Estado <ArrowDropDownIcon sx={{ fontSize: 16 }} />
+                <TableCell align="center" sx={{ width: '30px' }} >
+                  Descargar
                 </TableCell>
-                <TableCell align="center" sx={{ width: '30px' }} />
+              
               </TableRow>
             </TableHead>
             <TableBody>
@@ -257,9 +253,8 @@ const BillList = () => {
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((bill) => {
                   const issueDate = dayjs(bill.issueDate).format('DD/MM/YYYY')
-                  const dueDate = dayjs(bill.dueDate).format('DD/MM/YYYY')
+                  const dueDate = bill.dueDate == null ? '-' : dayjs(bill.dueDate).format('DD/MM/YYYY')
                   const billNumber = bill.billNumber.toString().padStart(8, '0')
-                  const status = computeStatus(bill)
 
                   return (
                     <TableRow key={bill.id}>
@@ -268,7 +263,6 @@ const BillList = () => {
                       <TableCell>{billNumber}</TableCell>
                       <TableCell>{bill.customerName}</TableCell>
                       <TableCell>${formatNumber(bill.totalAmount)}</TableCell>
-                      <TableCell>{status}</TableCell>
                       <TableCell align="center">
                         <IconButton
                           onClick={() => handleDownloadPdf(bill.id)}

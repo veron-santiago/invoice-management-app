@@ -34,12 +34,10 @@ public class CompanyController {
     }
 
     @GetMapping("/logo")
-    public ResponseEntity<Resource> getLogo(HttpServletRequest request) throws MalformedURLException {
-        Resource resource = companyService.getLogo(request);
-        if (resource == null) return ResponseEntity.noContent().build();
-        return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_PNG)
-                .body(resource);
+    public ResponseEntity<String> getLogo(HttpServletRequest request) {
+        String logo = companyService.getLogo(request);
+        if (logo == null || logo.isBlank()) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().body(logo);
     }
 
     @GetMapping("/access-token")
