@@ -7,37 +7,34 @@ const ProfileAvatar = ({ sx = {}, textSx = {} }) => {
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const headers = {
-      Authorization: `Bearer ${token}`
-    }
-    const fetchLogo = fetch(`${API_URL}/companies/logo`, { headers })
-      .then(res => {
-        if (res.ok) {
-          return res.blob()
-        }
-        return null
-      })
-      .then(blob => {
-        if (blob) {
-          const logoUrl = URL.createObjectURL(blob)
-          setLogoUrl(logoUrl)
-        }
-      })
-      .catch(err => {
-        console.log('Logo no disponible:', err.message)
-      })
+    const controller = new AbortController()
 
-    Promise.allSettled([fetchLogo])
-      .finally(() => {
+    const fetchLogo = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`${API_URL}/companies/logo`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
+        })
+
+        if (!res.ok || res.status === 204) {
+          setLogoUrl(null)
+          return
+        }
+
+        const url = await res.text()
+        setLogoUrl(url || null)
+      } catch (err) {
+        if (err.name !== 'AbortError') console.log('Logo no disponible:', err.message)
+        setLogoUrl(null)
+      } finally {
         setIsLoading(false)
-      })
-
-    return () => {
-      if (logoUrl) {
-        URL.revokeObjectURL(logoUrl)
       }
     }
+
+    fetchLogo()
+
+    return () => controller.abort()
   }, [])
 
   return (

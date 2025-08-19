@@ -8,5 +8,5 @@ import java.nio.file.AccessDeniedException;
 
 public interface IPdfService {
     String generateBillPdf(Bill bill, HttpServletRequest request, boolean includeQr, byte[] qrBytes) throws IOException;
-    byte[] getPdfByBillId(Long billId, HttpServletRequest request) throws AccessDeniedException;
+    String getPdfByBillId(Long billId, HttpServletRequest request) throws AccessDeniedException;
 }

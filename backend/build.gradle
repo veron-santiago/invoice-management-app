@@ -39,6 +39,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 	implementation 'com.google.zxing:core:3.5.3'
 	implementation 'com.google.zxing:javase:3.5.3'
+	implementation 'com.cloudinary:cloudinary-http5:2.0.0'
 	implementation ('com.mercadopago:sdk-java:2.5.0') {
 		exclude group: 'com.google.collections', module: 'google-collections'
 		exclude group: 'commons-beanutils', module: 'commons-beanutils'

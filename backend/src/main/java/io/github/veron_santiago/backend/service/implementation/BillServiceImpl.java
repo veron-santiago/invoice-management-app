@@ -26,7 +26,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -108,8 +111,22 @@ public class BillServiceImpl implements IBillService {
 
         String email = finalSaved.getCustomerEmail();
         if (billRequest.sendEmail() && email != null && !email.isEmpty()){
-            byte[] pdf = pdfService.getPdfByBillId(saved.getId(), request);
-            sendPdfToEmail(email, pdf, company.getCompanyName(), finalSaved.getId());
+            String pdfUrl = pdfService.getPdfByBillId(saved.getId(), request);
+
+            byte[] pdf;
+            String filename;
+            try {
+                URI uri = new URI(pdfUrl);
+                try (InputStream in = uri.toURL().openStream()) {
+                    pdf = in.readAllBytes();
+                }
+                String p = uri.getPath();
+                filename = java.net.URLDecoder.decode(p.substring(p.lastIndexOf('/') + 1), java.nio.charset.StandardCharsets.UTF_8);
+            } catch (URISyntaxException | IOException e) {
+                throw new InternalServerException("Error al enviar el PDF");
+            }
+
+            sendPdfToEmail(email, pdf, company.getCompanyName(), finalSaved.getId(), filename);
         }
 
         return billMapper.billToBillDTO(finalSaved, new BillDTO());
@@ -156,18 +173,15 @@ public class BillServiceImpl implements IBillService {
             }
         }
     }
-    private void sendPdfToEmail(String email, byte[] pdf, String companyName, Long billId){
+    private void sendPdfToEmail(String email, byte[] pdf, String companyName, Long billId, String filename){
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
             helper.setTo(email);
             helper.setSubject("Factura de " + companyName);
-            helper.setText("Adjunto encontrarás tu factura en PDF.");
-
+            helper.setText("PDF: ");
             ByteArrayResource resource = new ByteArrayResource(pdf);
-            helper.addAttachment("factura-" + billId + ".pdf", resource);
-
+            helper.addAttachment(filename, resource);
             javaMailSender.send(message);
         } catch (MessagingException | MailException e) {
             throw new InternalServerException("Error al enviar el correo: " + e.getMessage());

@@ -9,6 +9,7 @@ import io.github.veron_santiago.backend.service.exception.ObjectNotFoundExceptio
 import io.github.veron_santiago.backend.service.interfaces.ICompanyService;
 import io.github.veron_santiago.backend.service.interfaces.IPdfService;
 import io.github.veron_santiago.backend.util.AuthUtil;
+import io.github.veron_santiago.backend.util.ByteArrayMultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
@@ -19,6 +20,7 @@ import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
@@ -30,18 +32,19 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDPushButton;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.AccessDeniedException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -53,11 +56,13 @@ public class PdfServiceImpl implements IPdfService {
 
     private final IBillRepository billRepository;
     private final ICompanyService companyService;
+    private final CloudinaryService cloudinaryService;
     private final AuthUtil authUtil;
 
-    public PdfServiceImpl(IBillRepository billRepository, ICompanyService companyService, AuthUtil authUtil) {
+    public PdfServiceImpl(IBillRepository billRepository, ICompanyService companyService, CloudinaryService cloudinaryService, AuthUtil authUtil) {
         this.billRepository = billRepository;
         this.companyService = companyService;
+        this.cloudinaryService = cloudinaryService;
         this.authUtil = authUtil;
     }
 
@@ -99,9 +104,11 @@ public class PdfServiceImpl implements IPdfService {
                 }
             }
 
-            Resource logo = companyService.getLogo(request);
-            if (logo != null && logo.exists()){
-                try (InputStream in = logo.getInputStream()) {
+            String logo = companyService.getLogo(request);
+            if (logo != null && !logo.isBlank()){
+                URI uri = new URI(logo);
+                URL url = uri.toURL();
+                try (InputStream in = url.openStream()) {
                     BufferedImage buffered = ImageIO.read(in);
                     PDImageXObject pdImage = LosslessFactory.createFromImage(template, buffered);
                     setImageInAcroButton(template, pdImage, form, "logo_af_image", true);
@@ -115,6 +122,8 @@ public class PdfServiceImpl implements IPdfService {
 
 
             form.getField("companyNameTittle").setValue(bill.getCompanyName());
+            form.getField("companyInfo").setValue(getCompanyInfo(bill));
+            form.getField("customerInfo").setValue(getCustomerInfo(bill));
             form.getField("billNumber").setValue(billNumber);
             form.getField("issue_af_date").setValue(dateFormatter(bill.getIssueDate()));
             if (bill.getDueDate() != null){
@@ -122,18 +131,18 @@ public class PdfServiceImpl implements IPdfService {
             }
             form.getField("companyName").setValue(bill.getCompanyName());
             form.getField("customerName").setValue(bill.getCustomerName());
-            form.getField("companyInfo").setValue(getCompanyInfo(bill));
-            form.getField("customerInfo").setValue(getCustomerInfo(bill));
             form.getField("totalAmount").setValue("$ " + formatAmount(bill.getTotalAmount()));
             saveBillLines(bill.getBillLines(), form);
             form.flatten();
 
             return savePdf(template, companyId, billNumber);
+        } catch (URISyntaxException e) {
+            throw new InternalServerException("Error al generar el PDF");
         }
     }
 
     @Override
-    public byte[] getPdfByBillId(Long billId, HttpServletRequest request) throws AccessDeniedException {
+    public String getPdfByBillId(Long billId, HttpServletRequest request) throws AccessDeniedException {
 
         Bill bill = billRepository.findById(billId)
                 .orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.BILL_NOT_FOUND.getMessage()));
@@ -142,18 +151,9 @@ public class PdfServiceImpl implements IPdfService {
             throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_READ.getMessage());
         }
 
-        Path path = Paths.get(System.getProperty("user.dir"))
-                            .getParent()
-                            .resolve(bill.getPdfPath());
-        if (Files.notExists(path)) {
-            throw new ObjectNotFoundException(ErrorMessages.BILL_NOT_FOUND.getMessage());
-        }
-
-        try{
-            return Files.readAllBytes(path);
-        } catch (IOException e) {
-            throw new IllegalStateException(ErrorMessages.PDF_GENERATE_ERROR.getMessage());
-        }
+        String pdfPath = bill.getPdfPath();
+        if (pdfPath != null && !pdfPath.isEmpty()) return pdfPath;
+        else throw new ObjectNotFoundException("PDF no encontrado");
     }
 
     private PDDocument getTemplate() throws IOException {
@@ -173,8 +173,7 @@ public class PdfServiceImpl implements IPdfService {
         if (address != null && !address.isEmpty()) sb.append(address);
         return sb.toString();
     }
-
-    private String getCustomerInfo(Bill bill){
+    private String getCustomerInfo(Bill bill) {
         StringBuilder sb = new StringBuilder();
         String email = bill.getCustomerEmail();
         String address = bill.getCustomerAddress();
@@ -197,22 +196,29 @@ public class PdfServiceImpl implements IPdfService {
         }
     }
     private String savePdf(PDDocument template, Long companyId, String billNumber) throws IOException {
-        Path storagePath = getStoragePath(companyId);
-        Files.createDirectories(storagePath);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        template.save(baos);
+        byte[] pdfBytes = baos.toByteArray();
 
-        String fileName = billNumber + ".pdf";
-        Path outputPath = storagePath.resolve(fileName);
-        template.save(outputPath.toFile());
+        String path = "bills/" + companyId + "/";
 
-        return "storage/bills/" + companyId + "/" + fileName;
+        LocalDate date = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        String dateSt = date.format(formatter);
+        UUID uuid = UUID.randomUUID();
+        String uuidSt = uuid.toString();
+        String node = uuidSt.substring(uuidSt.lastIndexOf("-") + 1);
+        String name = billNumber + "_" + dateSt + "_" + node.toUpperCase();
+
+        MultipartFile multipartFile = new ByteArrayMultipartFile(
+                pdfBytes,
+                name + ".pdf",
+                name + ".pdf",
+                "application/pdf"
+        );
+
+        return cloudinaryService.uploadField(multipartFile, path, name + ".pdf", true);
     }
-    private Path getStoragePath(Long companyId){
-        return Paths.get(System.getProperty("user.dir"))
-                .getParent()
-                .resolve("storage")
-                .resolve("bills")
-                .resolve(companyId.toString());
-    };
     private String formatAmount(BigDecimal amount) {
         return String.format(Locale.US, "%.2f", amount);
     }
