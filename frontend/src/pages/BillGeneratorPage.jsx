@@ -41,6 +41,7 @@ export default function BillGeneratorPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showError, setShowError] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL;
 
   const nameRef = useRef();
