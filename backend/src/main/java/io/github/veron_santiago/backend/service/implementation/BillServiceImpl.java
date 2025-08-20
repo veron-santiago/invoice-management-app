@@ -3,6 +3,7 @@ package io.github.veron_santiago.backend.service.implementation;
 import io.github.veron_santiago.backend.persistence.entity.*;
 import io.github.veron_santiago.backend.persistence.repository.IBillRepository;
 import io.github.veron_santiago.backend.persistence.repository.ICompanyRepository;
+import io.github.veron_santiago.backend.persistence.repository.ICustomerRepository;
 import io.github.veron_santiago.backend.persistence.repository.IProductRepository;
 import io.github.veron_santiago.backend.presentation.dto.request.BillLineRequest;
 import io.github.veron_santiago.backend.presentation.dto.request.BillRequest;
@@ -43,7 +44,7 @@ public class BillServiceImpl implements IBillService {
     private final BillMapper billMapper;
     private final AuthUtil authUtil;
     private final ICustomerService customerService;
-    private final CustomerMapper customerMapper;
+    private final ICustomerRepository customerRepository;
     private final IBillLineService billLineService;
     private final IPdfService pdfService;
     private final JavaMailSender javaMailSender;
@@ -51,13 +52,13 @@ public class BillServiceImpl implements IBillService {
     private final IMercadoPagoService mercadoPagoService;
     private final QrCodeService qrCodeService;
 
-    public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, CustomerMapper customerMapper, IBillLineService billLineService, IPdfService pdfService, JavaMailSender javaMailSender, IProductRepository productRepository, IMercadoPagoService mercadoPagoService, QrCodeService qrCodeService) {
+    public BillServiceImpl(IBillRepository billRepository, ICompanyRepository companyRepository, BillMapper billMapper, AuthUtil authUtil, ICustomerService customerService, ICustomerRepository customerRepository, IBillLineService billLineService, IPdfService pdfService, JavaMailSender javaMailSender, IProductRepository productRepository, IMercadoPagoService mercadoPagoService, QrCodeService qrCodeService) {
         this.billRepository = billRepository;
         this.companyRepository = companyRepository;
         this.billMapper = billMapper;
         this.authUtil = authUtil;
         this.customerService = customerService;
-        this.customerMapper = customerMapper;
+        this.customerRepository = customerRepository;
         this.billLineService = billLineService;
         this.pdfService = pdfService;
         this.javaMailSender = javaMailSender;
@@ -197,19 +198,16 @@ public class BillServiceImpl implements IBillService {
         return total;
     }
     private Customer getCustomerOrCreate(Company company, BillRequest billRequest, HttpServletRequest request){
-        return company.getCustomers().stream()
-                .filter(c -> c.getName().equalsIgnoreCase(billRequest.customerName()))
-                .findFirst()
+        return customerRepository.findByCompanyIdAndNameIgnoreCase(company.getId(), billRequest.customerName())
                 .orElseGet(() -> {
                     CustomerRequest cReq = new CustomerRequest(
                             billRequest.customerName(),
                             billRequest.customerAddress(),
                             billRequest.customerEmail()
                     );
-                    CustomerDTO saved = customerService.createCustomer(cReq, request);
-                    return customerMapper.customerDTOToCustomer(
-                            saved, new Customer(), companyRepository, billRepository
-                    );
+                    CustomerDTO savedDto = customerService.createCustomer(cReq, request);
+                    return customerRepository.findById(savedDto.getId())
+                            .orElseThrow(() -> new ObjectNotFoundException(ErrorMessages.CUSTOMER_NOT_FOUND.getMessage()));
                 });
     }
     private List<BillLine> createBillLines(BillRequest billRequest, Bill bill, HttpServletRequest request){
